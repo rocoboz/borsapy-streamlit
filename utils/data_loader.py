@@ -1,0 +1,64 @@
+import streamlit as st
+import borsapy as bp
+import pandas as pd
+
+@st.cache_resource(ttl=600)  # Cache for 10 minutes
+def get_ticker_info(symbol):
+    try:
+        ticker = bp.Ticker(symbol)
+        # Force load fast_info to ensure validity
+        _ = ticker.fast_info
+        return ticker
+    except Exception as e:
+        return None
+
+@st.cache_data(ttl=300)
+def get_stock_history(symbol, period="1y", interval="1d"):
+    try:
+        ticker = bp.Ticker(symbol)
+        df = ticker.history(period=period, interval=interval)
+        return df
+    except:
+        return pd.DataFrame()
+
+@st.cache_data(ttl=3600)
+def get_all_indices():
+    return bp.all_indices()
+
+@st.cache_resource(ttl=600)
+def get_index_info(symbol):
+    try:
+        idx = bp.Index(symbol)
+        # Force fetch
+        _ = idx.info
+        return idx
+    except:
+        return None
+
+@st.cache_data(ttl=300)
+def get_fx_rate(symbol):
+    try:
+        fx = bp.FX(symbol)
+        cur = fx.current
+        val = cur.get('last') if isinstance(cur, dict) else cur
+        return val, fx.history(period="1mo")
+    except:
+        return None, pd.DataFrame()
+
+@st.cache_data(ttl=300)
+def get_crypto_price(symbol):
+    try:
+        c = bp.Crypto(symbol)
+        cur = c.current
+        val = cur.get('last') if isinstance(cur, dict) else cur
+        return val, c.history(period="1mo")
+    except:
+        return None, pd.DataFrame()
+
+@st.cache_resource(ttl=3600) # Funds update daily
+def get_fund_info(code):
+    try:
+        fund = bp.Fund(code)
+        return fund
+    except:
+        return None

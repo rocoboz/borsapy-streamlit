@@ -1,0 +1,7 @@
+borsapy
+streamlit
+plotly
+pandas
+streamlit-lottie
+streamlit-option-menu
+requests
