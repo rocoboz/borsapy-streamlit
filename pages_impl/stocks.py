@@ -1,14 +1,43 @@
 import streamlit as st
+import borsapy as bp
 import pandas as pd
 import plotly.graph_objects as go
-from utils.data_loader import get_ticker_info, get_stock_history
+from utils.data_loader import get_ticker_info, get_stock_history, get_stock_list
 from utils.ui import render_header, metric_card
+from streamlit_searchbox import st_searchbox
 
 def app():
     render_header("Hisse Senedi Analizi", "BIST Şirketleri Detaylı Analiz Platformu")
     
-    # Search Bar
-    symbol = st.text_input("Hisse Kodu Giriniz (Örn: THYAO, ASELS, GARAN)", "THYAO").upper()
+    # Search Function
+    def search_stocks(searchterm: str):
+        stock_list = get_stock_list()
+        if not searchterm:
+            return []
+        
+        # Simple case-insensitive match
+        searchterm = searchterm.lower()
+        return [s for s in stock_list if searchterm in s.lower()]
+
+    # Use Searchbox
+    selected_stock = st_searchbox(
+        search_stocks,
+        key="stock_searchbox",
+        label="Hisse Ara",
+        placeholder="Hisse kodu veya adı giriniz (örn: THYAO)",
+        clear_on_submit=True,
+    )
+    
+    # State management for selection
+    if "selected_symbol" not in st.session_state:
+        st.session_state.selected_symbol = "THYAO"
+        
+    if selected_stock:
+        # Update session state if new selection
+        symbol = selected_stock.split(" - ")[0]
+        st.session_state.selected_symbol = symbol
+        
+    symbol = st.session_state.selected_symbol
     
     with st.expander("🔍 Hisse Tarama (Screener)"):
         st.caption("Detaylı filtreleme için kriterleri belirleyin")
@@ -18,13 +47,72 @@ def app():
         
         if st.button("Hisseleri Tara"):
             try:
-                # Basic wrapper for screen_stocks if available
-                # Since borsapy screen_stocks arguments might vary, we simulate or use library
-                # Assuming library has screen_stocks(index=..., sector=...)
-                res = bp.screen_stocks(index=idx_filter if idx_filter != "Tümü" else None)
-                st.dataframe(res)
+                # Custom Screener Implementation (Borsapy fallback)
+                # Since borsapy.screen_stocks is unstable, we use index intersection method
+                
+                # 1. Get Index Components
+                index_tickers = []
+                if idx_filter != "Tümü":
+                    try:
+                        idx_comps = bp.Index(idx_filter).components
+                        index_tickers = [c['symbol'] for c in idx_comps]
+                    except:
+                        st.warning(f"{idx_filter} verisi alınamadı.")
+                
+                # 2. Get Sector Components (via Sector Indices)
+                sector_tickers = []
+                sector_map = {
+                    "Bankacılık": "XBANK",
+                    "Sanayi": "XUSIN",
+                    "Teknoloji": "XUTEK"
+                }
+                
+                if sector != "Tümü":
+                    sec_code = sector_map.get(sector)
+                    if sec_code:
+                        try:
+                            sec_comps = bp.Index(sec_code).components
+                            sector_tickers = [c['symbol'] for c in sec_comps]
+                        except:
+                            st.warning(f"{sector} sektörü verisi alınamadı.")
+                
+                # 3. Intersect
+                final_tickers = []
+                
+                if idx_filter == "Tümü" and sector == "Tümü":
+                    # Fetch XUTUM or top 500
+                    try:
+                        all_comps = bp.Index('XUTUM').components
+                        final_tickers = all_comps
+                    except:
+                        st.error("Tüm hisse listesi alınamadı.")
+                
+                elif idx_filter != "Tümü" and sector == "Tümü":
+                    final_tickers = [{"symbol": t, "name": ""} for t in index_tickers] # We lose names if we just used list, but idx_comps has them.
+                    # Better way:
+                    if idx_comps: final_tickers = idx_comps
+                    
+                elif idx_filter == "Tümü" and sector != "Tümü":
+                     if sec_comps: final_tickers = sec_comps
+                     
+                else:
+                    # Intersection
+                    set_idx = set(index_tickers)
+                    set_sec = set(sector_tickers)
+                    common = set_idx.intersection(set_sec)
+                    # Find names for common
+                    final_tickers = [c for c in idx_comps if c['symbol'] in common]
+                
+                if final_tickers:
+                    # Create DF
+                    res_df = pd.DataFrame(final_tickers)
+                    st.success(f"{len(res_df)} hisse bulundu.")
+                    st.dataframe(res_df)
+                else:
+                    st.warning("Kriterlere uygun hisse bulunamadı.")
+
             except Exception as e:
-                st.info("Screener modülü şu an aktif değil veya kütüphane desteği sınırlı.")
+                st.error(f"Screener hatası: {str(e)}")
     
     if symbol:
         if "btn_analyze" not in st.session_state:

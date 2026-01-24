@@ -18,25 +18,33 @@ def app():
     if selected_code:
         st.caption(f"{selected_code} - {index_options[selected_code]}")
         
+        idx = None
         try:
             idx = bp.Index(selected_code)
-            
-            # Chart
-            st.subheader("Endeks Performansı")
-            df = idx.history(period="1y")
-            
-            if not df.empty:
-                fig = px.line(df, x=df.index, y="Close", title=f"{selected_code} Günlük Kapanış")
-                fig.update_layout(template="plotly_dark")
-                st.plotly_chart(fig)
-            
-            # Components
-            with st.expander("Endeks Bileşenleri (Hisseler)"):
-                comps = idx.components
-                if comps:
-                    st.table(comps)
-                else:
-                    st.info("Bileşen listesi çekilemedi.")
-                    
         except Exception as e:
-            st.error(f"Veri alınırken hata oluştu: {str(e)}")
+            st.error(f"Endeks bağlantı hatası: {str(e)}")
+            
+        if idx:
+            # Chart Section
+            st.subheader("Endeks Performansı")
+            try:
+                df = idx.history(period="1y")
+                if not df.empty:
+                    fig = px.line(df, x=df.index, y="Close", title=f"{selected_code} Günlük Kapanış")
+                    fig.update_layout(template="plotly_dark")
+                    st.plotly_chart(fig)
+                else:
+                    st.info("Bu endeks için grafik verisi görüntülenemiyor.")
+            except Exception as e:
+                st.warning(f"Grafik verisi alınamadı: {str(e)}")
+            
+            # Components Section
+            try:
+                with st.expander("Endeks Bileşenleri (Hisseler)", expanded=True):
+                    comps = idx.components
+                    if comps:
+                        st.table(comps)
+                    else:
+                        st.info("Bileşen listesi çekilemedi.")
+            except Exception as e:
+                st.warning(f"Bileşen listesi alınamadı: {str(e)}")

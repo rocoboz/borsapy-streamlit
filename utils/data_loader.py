@@ -2,6 +2,37 @@ import streamlit as st
 import borsapy as bp
 import pandas as pd
 
+@st.cache_data(ttl=86400) # Daily cache
+def get_stock_list():
+    try:
+        df = bp.companies()
+        # Create "TICKER - Name" format
+        if not df.empty:
+            return [f"{row['ticker']} - {row['name']}" for _, row in df.iterrows()]
+        return []
+    except:
+        return []
+
+@st.cache_data(ttl=86400)
+def get_fund_list():
+    try:
+        # Fetch all funds (using a high limit)
+        funds = bp.search_funds('', limit=2000)
+        if funds:
+            # Sort for better UX
+            funds_sorted = sorted(funds, key=lambda x: x['fund_code'])
+            return [f"{f['fund_code']} - {f['name']}" for f in funds_sorted]
+        return []
+    except:
+        return []
+
+@st.cache_data(ttl=86400)
+def get_crypto_list():
+    try:
+        return bp.crypto_pairs()
+    except:
+        return []
+
 @st.cache_resource(ttl=600)  # Cache for 10 minutes
 def get_ticker_info(symbol):
     try:

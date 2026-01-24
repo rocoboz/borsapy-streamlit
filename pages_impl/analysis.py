@@ -2,12 +2,38 @@ import streamlit as st
 import borsapy as bp
 import plotly.graph_objects as go
 from utils.ui import render_header
-from utils.data_loader import get_stock_history
+from utils.data_loader import get_stock_history, get_stock_list
+from streamlit_searchbox import st_searchbox
 
 def app():
     render_header("Teknik Analiz", "İndikatörler ve Sinyaller")
     
-    symbol = st.text_input("Analiz Edilecek Sembol", "THYAO").upper()
+    # Search Function
+    def search_stocks(searchterm: str):
+        stock_list = get_stock_list()
+        if not searchterm:
+            return []
+        
+        searchterm = searchterm.lower()
+        return [s for s in stock_list if searchterm in s.lower()]
+
+    # Use Searchbox
+    selected_stock = st_searchbox(
+        search_stocks,
+        key="analysis_searchbox",
+        label="Hisse Ara",
+        placeholder="Hisse kodu veya adı giriniz (örn: THYAO)",
+        clear_on_submit=True,
+    )
+    
+    if "selected_analysis_symbol" not in st.session_state:
+        st.session_state.selected_analysis_symbol = "THYAO"
+        
+    if selected_stock:
+        symbol = selected_stock.split(" - ")[0]
+        st.session_state.selected_analysis_symbol = symbol
+        
+    symbol = st.session_state.selected_analysis_symbol
     
     if symbol:
         ticker = bp.Ticker(symbol)
@@ -75,7 +101,7 @@ def app():
             last_rsi = ta.rsi().iloc[-1]
             last_sma20 = ta.sma(20).iloc[-1]
             last_sma50 = ta.sma(50).iloc[-1]
-            current_price = ticker.fast_info.get('last_price', 0)
+            current_price = getattr(ticker.fast_info, 'last_price', 0)
             
             signals_list = []
             

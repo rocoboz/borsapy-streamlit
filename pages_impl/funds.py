@@ -3,7 +3,8 @@ import borsapy as bp
 import pandas as pd
 import plotly.express as px
 from utils.ui import render_header, metric_card
-from utils.data_loader import get_fund_info
+from utils.data_loader import get_fund_info, get_fund_list
+from streamlit_searchbox import st_searchbox
 
 def app():
     render_header("Yatırım Fonları", "TEFAS Fon Analizi ve Karşılaştırma")
@@ -11,7 +12,34 @@ def app():
     tab1, tab2, tab3 = st.tabs(["🔍 Fon Detay", "⚖️ Fon Karşılaştırma", "🕵️ Fon Tarama"])
     
     with tab1:
-        code = st.text_input("Fon Kodu (Örn: AAK, TTE, MAC)", "AAK").upper()
+        # Search Function
+        def search_funds(searchterm: str):
+            fund_list = get_fund_list()
+            if not searchterm:
+                return []
+            
+            searchterm = searchterm.lower()
+            return [f for f in fund_list if searchterm in f.lower()]
+
+        # Use Searchbox
+        selected_fund = st_searchbox(
+            search_funds,
+            key="fund_searchbox",
+            label="Fon Ara",
+            placeholder="Fon kodu veya adı giriniz (örn: AAK)",
+            clear_on_submit=True,
+        )
+
+        # State management
+        if "selected_fund_code" not in st.session_state:
+            st.session_state.selected_fund_code = "AAK"
+            
+        if selected_fund:
+            code = selected_fund.split(" - ")[0]
+            st.session_state.selected_fund_code = code
+            
+        code = st.session_state.selected_fund_code
+            
         if code:
             fund = get_fund_info(code)
             if fund:
