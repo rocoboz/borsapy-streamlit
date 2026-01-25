@@ -24,6 +24,22 @@ def app():
                 if 'TUFE_Yillik' in latest.columns:
                     val = latest['TUFE_Yillik'].iloc[0]
                     metric_card("TÜFE (Yıllık)", f"%{val:.2f}", icon="📉")
+            elif isinstance(latest, dict) and latest:
+                # Handle dictionary response
+                c1, c2 = st.columns(2)
+                
+                yearly = latest.get('yearly_inflation')
+                monthly = latest.get('monthly_inflation')
+                
+                with c1:
+                    if yearly is not None:
+                        metric_card("TÜFE (Yıllık)", f"%{yearly:.2f}", icon="📉")
+                with c2:
+                    if monthly is not None:
+                        metric_card("TÜFE (Aylık)", f"%{monthly:.2f}", icon="📉")
+                        
+                st.dataframe(pd.DataFrame([latest]), width="stretch")
+
             else:
                 st.info("Güncel enflasyon verisi alınamadı.")
                 
