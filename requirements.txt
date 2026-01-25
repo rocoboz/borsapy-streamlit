@@ -5,3 +5,5 @@ pandas
 streamlit-lottie
 streamlit-option-menu
 requests
+streamlit-searchbox
+
