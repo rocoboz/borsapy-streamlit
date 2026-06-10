@@ -127,7 +127,7 @@ def get_latest_news(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
-def get_global_news() -> str:
+def get_global_news(*args, **kwargs) -> str:
     """Gets the latest general economic and global news headlines to understand market sentiment."""
     import requests
     import xml.etree.ElementTree as ET
@@ -155,7 +155,7 @@ def get_global_news() -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
-def get_macro_events() -> str:
+def get_macro_events(*args, **kwargs) -> str:
     """Gets the upcoming/today's important macroeconomic events and the TCMB policy rate."""
     from utils.data_loader import get_economic_calendar, get_real_policy_rate
     import json
