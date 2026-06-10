@@ -57,10 +57,9 @@ def app():
                 ticker = get_ticker_info(sym)
                 if ticker:
                     try:
-                        info = ticker.fast_info
-                        price = getattr(info, 'last_price', 0)
-                        prev_close = getattr(info, 'previous_close', price)
-                        chg_pct = ((price - prev_close) / prev_close * 100) if prev_close and prev_close > 0 else 0
+                        info = ticker.info
+                        price = info.get('last', info.get('currentPrice', info.get('regularMarketPrice', 0)))
+                        chg_pct = info.get('change_percent', info.get('regularMarketChangePercent', 0))
                         metric_card(sym, f"{price:.2f}", f"%{chg_pct:.2f}", icon=None)
                     except Exception as e:
                         metric_card(sym, "N/A", icon=None)
