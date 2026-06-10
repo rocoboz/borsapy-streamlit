@@ -107,3 +107,12 @@ def get_real_policy_rate():
         pass
     return None
 
+
+@st.cache_data(ttl=3600)
+def get_economic_calendar():
+    try:
+        import borsapy as bp
+        return bp.economic_calendar()
+    except:
+        return None
+

@@ -141,3 +141,41 @@ def app():
                 """, unsafe_allow_html=True)
         except:
             pass
+            
+        # 🗓️ Ekonomik Takvim
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.subheader("🗓️ Ekonomik Takvim (Önemli)")
+        from utils.data_loader import get_economic_calendar
+        try:
+            with st.spinner("Takvim yükleniyor..."):
+                cal_df = get_economic_calendar()
+                if cal_df is not None and not cal_df.empty:
+                    # Filter high/mid importance and take top 4
+                    high_mid = cal_df[cal_df['Importance'].isin(['high', 'mid'])].head(4)
+                    if not high_mid.empty:
+                        for _, row in high_mid.iterrows():
+                            country_str = str(row['Country'])
+                            flag = "🇹🇷" if "T" in country_str else "🇺🇸" if "ABD" in country_str else "🇪🇺" if "Euro" in country_str else "🌍"
+                            imp_color = "#ff0055" if row['Importance'] == 'high' else "#f0b90b"
+                            event_name = str(row['Event'])[:35] + "..." if len(str(row['Event'])) > 35 else str(row['Event'])
+                            time_str = str(row['Time'])
+                            st.markdown(f"""
+                            <div class="custom-card" style="padding: 10px; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 1.2em; margin-right: 8px;">{flag}</span>
+                                        <span style="font-size: 0.85em; color: #a0a5b9;">{time_str}</span>
+                                        <br><span style="font-size: 0.9em; font-weight: 500;">{event_name}</span>
+                                    </div>
+                                    <div title="Önem Derecesi">
+                                        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: {imp_color}; box-shadow: 0 0 8px {imp_color};"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.info("Bugün için önemli veri akışı bulunmuyor.")
+                else:
+                    st.info("Takvim verisi alınamadı.")
+        except Exception as e:
+            st.error("Takvim yüklenemedi.")
