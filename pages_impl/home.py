@@ -83,28 +83,34 @@ def app():
 
     with c_right:
         # 🔥 Yıldız Fonlar
-        st.subheader("🔥 Günün Yıldız Fonları (Top 5)")
+        st.subheader("🔥 Ayın Yıldız Fonları (Top 5)")
         with st.spinner("Fonlar çekiliyor..."):
             import borsapy as bp
             try:
-                top_funds = bp.screen_funds(limit=5)
-                if top_funds is not None and not top_funds.empty:
+                # Fetch all and sort by 1-month return for a more dynamic "hot" list
+                all_funds = bp.screen_funds(limit=5000)
+                if all_funds is not None and not all_funds.empty:
+                    top_funds = all_funds.sort_values(by='return_1m', ascending=False).head(5)
                     for i, row in top_funds.iterrows():
                         fname = row['name']
                         name_short = fname[:25] + "..." if len(fname) > 25 else fname
-                        ret1y = row.get('return_1y', 0)
-                        if ret1y is None or str(ret1y) == 'nan': ret1y = 0
+                        ret1m = row.get('return_1m', 0)
+                        if ret1m is None or str(ret1m) == 'nan': ret1m = 0
+                        
+                        # Use a simpler index counter since iterrows index is the original dataframe index
+                        display_index = list(top_funds.index).index(i) + 1
+                        
                         st.markdown(f"""
                         <div class="custom-card" style="padding: 12px; margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
-                                    <span style="color: #a0a5b9; font-weight: bold; margin-right: 10px;">#{i+1}</span>
+                                    <span style="color: #a0a5b9; font-weight: bold; margin-right: 10px;">#{display_index}</span>
                                     <span style="font-weight: bold; color: #00d2ff;">{row['fund_code']}</span>
                                     <br><span style="font-size: 0.8em; opacity: 0.8;">{name_short}</span>
                                 </div>
                                 <div style="text-align: right;">
-                                    <span style="color: #00ff9d; font-weight: bold;">+{ret1y:.2f}%</span>
-                                    <br><span style="font-size: 0.7em; opacity: 0.5;">Son 1 Yıl</span>
+                                    <span style="color: #00ff9d; font-weight: bold;">+{ret1m:.2f}%</span>
+                                    <br><span style="font-size: 0.7em; opacity: 0.5;">Son 1 Ay</span>
                                 </div>
                             </div>
                         </div>
