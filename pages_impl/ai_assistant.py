@@ -1,37 +1,12 @@
 import streamlit as st
 from openai import OpenAI
-import re
-from utils.data_loader import get_ticker_info
-
-def extract_symbols(text):
-    # Try to find uppercase words of length 3-6 (common stock/fund symbols)
-    matches = re.findall(r'\b[A-Z]{3,6}\b', text)
-    # Remove common non-stock words
-    stopwords = {"NASIL", "NEDI", "ALINIR", "SATILIR", "GRAFIK", "BIST", "BANKA"}
-    symbols = [m for m in matches if m not in stopwords]
-    return list(set(symbols))
-
-def fetch_rag_data(symbols):
-    rag_text = ""
-    for sym in symbols:
-        ticker = get_ticker_info(sym)
-        if ticker:
-            try:
-                info = ticker.info
-                price = info.get('last', info.get('currentPrice', info.get('regularMarketPrice', 0)))
-                chg = info.get('change_percent', info.get('regularMarketChangePercent', 0))
-                pe = info.get('trailingPE', 'N/A')
-                pb = info.get('priceToBook', 'N/A')
-                rag_text += f"- {sym}: Fiyat={price:.2f} ₺, Değişim=%{chg:.2f}, F/K={pe}, PD/DD={pb}\n"
-            except:
-                pass
-    return rag_text
+import json
 
 def app():
     st.markdown("""
     <div class="animate-fade-in" style="margin-bottom: 20px;">
-        <h1 style="color: #00d2ff; text-align: center;">🤖 Neo-Fintech AI Asistan</h1>
-        <p style="text-align: center; opacity: 0.8;">Gerçek zamanlı BorsaPY verileriyle güçlendirilmiş finansal analiz motoru.</p>
+        <h1 style="color: #00d2ff; text-align: center;">🤖 Neo-Fintech Süper Ajan</h1>
+        <p style="text-align: center; opacity: 0.8;">BorsaPY fonksiyonlarını kendi kendine kullanarak profesyonel analiz yapan Ajan.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -41,12 +16,12 @@ def app():
         
     if not st.session_state.openrouter_api_key:
         with st.container():
-            st.warning("Asistanı kullanabilmek için lütfen bir OpenRouter API anahtarı girin.")
+            st.warning("Ajanı kullanabilmek için lütfen bir OpenRouter API anahtarı girin.")
             api_key = st.text_input("OpenRouter API Anahtarı (sk-or-v1-...)", type="password")
             st.markdown("""
             > 🔒 **Gizlilik & Güvenlik:** API anahtarınız sunucularımızda veya veritabanlarımızda **asla depolanmaz**. Sadece kendi tarayıcınızın geçici hafızasında (local session) tutulur ve model işlemleri haricinde hiçbir yere gönderilmez. Sayfayı kapattığınızda otomatik olarak silinir.
             """)
-            if st.button("Asistanı Başlat", use_container_width=True):
+            if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key.startswith("sk-or-"):
                     st.session_state.openrouter_api_key = api_key
                     st.rerun()
@@ -63,9 +38,9 @@ def app():
     # Model Selection
     model_choice = st.selectbox("Yapay Zeka Modeli Seçin", [
         "google/gemini-2.5-flash",
-        "meta-llama/llama-3-8b-instruct:free",
-        "anthropic/claude-3.5-sonnet",
         "openai/gpt-4o",
+        "anthropic/claude-3.5-sonnet",
+        "meta-llama/llama-3.1-8b-instruct",
         "Diğer (Özel Model ID Gir)"
     ], index=0)
     
@@ -85,48 +60,94 @@ def app():
         
     # Display chat history
     for msg in st.session_state.messages:
-        if msg["role"] != "system": # Hide system prompts
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
+        if msg["role"] != "system" and msg["role"] != "tool": 
+            # hide system and tool messages, and assistant tool calls
+            if msg["role"] == "assistant" and getattr(msg, "tool_calls", None):
+                continue
+            if isinstance(msg, dict):
+                content = msg.get("content")
+                if content:
+                    with st.chat_message(msg["role"]):
+                        st.markdown(content)
+            else:
+                # msg is an object (like ChatCompletionMessage)
+                if msg.content:
+                    with st.chat_message(msg.role):
+                        st.markdown(msg.content)
 
     # Chat Input
-    if prompt := st.chat_input("Hangi hisse veya fon hakkında konuşmak istersiniz?"):
+    if prompt := st.chat_input("Hisse, fon veya makro veriler hakkında soru sorun..."):
         # Add user message to chat UI
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # RAG Logic
-        with st.spinner("Piyasa verileri taranıyor ve asistan düşünüyor..."):
-            symbols = extract_symbols(prompt)
-            rag_context = ""
-            if symbols:
-                rag_data = fetch_rag_data(symbols)
-                if rag_data:
-                    rag_context = f"Sistem Notu (Canlı Veriler):\n{rag_data}\nLütfen analizini yukarıdaki bu anlık verilere dayanarak, kısa ve öz yap.\n\n"
+        # Agent Loop
+        with st.spinner("Süper Ajan piyasa verilerini analiz ediyor..."):
+            from utils.ai_tools import AI_TOOLS_SCHEMA, AI_TOOLS_MAP
             
-            # Build API messages
-            api_messages = [{"role": "system", "content": "Sen profesyonel, analitik ve objektif bir Borsa İstanbul ve kripto uzmanısın. Yorumların yatırım tavsiyesi değildir uyarısını sadece gerektiğinde yap. Yanıtların markdown formatında ve çok şık olmalı."}]
+            # Build API messages for the current run
+            api_messages = [{"role": "system", "content": "Sen profesyonel, analitik ve objektif bir finans, borsa ve kripto uzmanısın. Gerçek verilere dayalı yorum yaparsın. İhtiyacın olan veriyi çekmek için sana verilen fonksiyonları (tools) çağırmalısın."}]
             
-            # We don't want to send ALL history's RAG context, just the chat history
-            for m in st.session_state.messages[:-1]:
+            # Add conversation history
+            for m in st.session_state.messages:
                 api_messages.append(m)
-                
-            # Add latest message WITH RAG context hidden inside it
-            api_messages.append({"role": "user", "content": rag_context + prompt})
 
-            try:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=api_messages,
-                    max_tokens=1000
-                )
-                ai_reply = response.choices[0].message.content
-                
-                # Show AI response
-                with st.chat_message("assistant"):
-                    st.markdown(ai_reply)
+            max_tool_calls = 5
+            tool_call_count = 0
+            
+            while tool_call_count < max_tool_calls:
+                try:
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=api_messages,
+                        tools=AI_TOOLS_SCHEMA,
+                        tool_choice="auto"
+                    )
                     
-                st.session_state.messages.append({"role": "assistant", "content": ai_reply})
-            except Exception as e:
-                st.error(f"API Hatası: {str(e)}")
+                    response_message = response.choices[0].message
+                    
+                    if response_message.tool_calls:
+                        # Add assistant tool call request to messages
+                        api_messages.append(response_message)
+                        st.session_state.messages.append(response_message)
+                        
+                        for tool_call in response_message.tool_calls:
+                            function_name = tool_call.function.name
+                            function_to_call = AI_TOOLS_MAP.get(function_name)
+                            
+                            st.toast(f"Ajan çalıştırıyor: {function_name}()", icon="⚙️")
+                            
+                            if function_to_call:
+                                function_args = json.loads(tool_call.function.arguments)
+                                function_response = function_to_call(
+                                    symbol=function_args.get("symbol")
+                                )
+                                
+                                tool_msg = {
+                                    "tool_call_id": tool_call.id,
+                                    "role": "tool",
+                                    "name": function_name,
+                                    "content": function_response,
+                                }
+                                api_messages.append(tool_msg)
+                                st.session_state.messages.append(tool_msg)
+                            else:
+                                tool_msg = {
+                                    "tool_call_id": tool_call.id,
+                                    "role": "tool",
+                                    "name": function_name,
+                                    "content": json.dumps({"error": "Function not found"}),
+                                }
+                                api_messages.append(tool_msg)
+                                st.session_state.messages.append(tool_msg)
+                        tool_call_count += 1
+                    else:
+                        ai_reply = response_message.content
+                        with st.chat_message("assistant"):
+                            st.markdown(ai_reply)
+                        st.session_state.messages.append({"role": "assistant", "content": ai_reply})
+                        break
+                except Exception as e:
+                    st.error(f"Süper Ajan API Hatası: {str(e)}")
+                    break
