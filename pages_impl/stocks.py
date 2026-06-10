@@ -47,70 +47,48 @@ def app():
         
         if st.button("Hisseleri Tara"):
             try:
-                # Custom Screener Implementation (Borsapy fallback)
-                # Since borsapy.screen_stocks is unstable, we use index intersection method
-                
-                # 1. Get Index Components
-                index_tickers = []
-                if idx_filter != "Tümü":
-                    try:
-                        idx_comps = bp.Index(idx_filter).components
-                        index_tickers = [c['symbol'] for c in idx_comps]
-                    except:
-                        st.warning(f"{idx_filter} verisi alınamadı.")
-                
-                # 2. Get Sector Components (via Sector Indices)
-                sector_tickers = []
-                sector_map = {
-                    "Bankacılık": "XBANK",
-                    "Sanayi": "XUSIN",
-                    "Teknoloji": "XUTEK"
-                }
-                
-                if sector != "Tümü":
-                    sec_code = sector_map.get(sector)
-                    if sec_code:
-                        try:
-                            sec_comps = bp.Index(sec_code).components
-                            sector_tickers = [c['symbol'] for c in sec_comps]
-                        except:
-                            st.warning(f"{sector} sektörü verisi alınamadı.")
-                
-                # 3. Intersect
-                final_tickers = []
-                
-                if idx_filter == "Tümü" and sector == "Tümü":
-                    # Fetch XUTUM or top 500
-                    try:
-                        all_comps = bp.Index('XUTUM').components
-                        final_tickers = all_comps
-                    except:
-                        st.error("Tüm hisse listesi alınamadı.")
-                
-                elif idx_filter != "Tümü" and sector == "Tümü":
-                    final_tickers = [{"symbol": t, "name": ""} for t in index_tickers] # We lose names if we just used list, but idx_comps has them.
-                    # Better way:
-                    if idx_comps: final_tickers = idx_comps
-                    
-                elif idx_filter == "Tümü" and sector != "Tümü":
-                     if sec_comps: final_tickers = sec_comps
-                     
-                else:
-                    # Intersection
-                    set_idx = set(index_tickers)
-                    set_sec = set(sector_tickers)
-                    common = set_idx.intersection(set_sec)
-                    # Find names for common
-                    final_tickers = [c for c in idx_comps if c['symbol'] in common]
-                
-                if final_tickers:
-                    # Create DF
-                    res_df = pd.DataFrame(final_tickers)
+                if sector == "Tümü" and idx_filter != "Tümü":
+                    # Native Screener Usage
+                    screener = bp.Screener()
+                    screener.set_index(idx_filter)
+                    res_df = screener.run()
                     st.success(f"{len(res_df)} hisse bulundu.")
                     st.dataframe(res_df)
                 else:
-                    st.warning("Kriterlere uygun hisse bulunamadı.")
-
+                    # Hybrid / Intersection method for Sector Filtering
+                    index_tickers = []
+                    if idx_filter != "Tümü":
+                        idx_comps = bp.Index(idx_filter).components
+                        index_tickers = [c['symbol'] for c in idx_comps]
+                    
+                    sector_tickers = []
+                    sector_map = {"Bankacılık": "XBANK", "Sanayi": "XUSIN", "Teknoloji": "XUTEK"}
+                    if sector != "Tümü":
+                        sec_code = sector_map.get(sector)
+                        if sec_code:
+                            sec_comps = bp.Index(sec_code).components
+                            sector_tickers = [c['symbol'] for c in sec_comps]
+                    
+                    final_tickers = []
+                    if idx_filter == "Tümü" and sector == "Tümü":
+                        all_comps = bp.Index('XUTUM').components
+                        final_tickers = all_comps
+                    elif idx_filter != "Tümü" and sector == "Tümü":
+                        final_tickers = idx_comps
+                    elif idx_filter == "Tümü" and sector != "Tümü":
+                        final_tickers = sec_comps
+                    else:
+                        set_idx = set(index_tickers)
+                        set_sec = set(sector_tickers)
+                        common = set_idx.intersection(set_sec)
+                        final_tickers = [c for c in idx_comps if c['symbol'] in common]
+                    
+                    if final_tickers:
+                        res_df = pd.DataFrame(final_tickers)
+                        st.success(f"{len(res_df)} hisse bulundu.")
+                        st.dataframe(res_df)
+                    else:
+                        st.warning("Kriterlere uygun hisse bulunamadı.")
             except Exception as e:
                 st.error(f"Screener hatası: {str(e)}")
     

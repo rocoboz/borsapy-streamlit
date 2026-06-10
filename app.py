@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from utils.ui import load_css, load_lottieurl
-from pages_impl import home, stocks, indices, forex, funds, crypto, portfolio, analysis, tools, macro
+from pages_impl import home, stocks, indices, forex, funds, crypto, portfolio, analysis, tools, macro, viop, bonds
 
 # Page Config
 st.set_page_config(
@@ -30,7 +30,9 @@ with st.sidebar:
             "Ana Sayfa", 
             "Hisse Senetleri", 
             "Endeksler", 
+            "VIOP",
             "Döviz & Altın", 
+            "Tahvil & Bono",
             "Yatırım Fonları",
             "Makroekonomi",
             "Kripto",
@@ -42,7 +44,9 @@ with st.sidebar:
             "house", 
             "graph-up-arrow", 
             "list-ol", 
+            "graph-up",
             "currency-exchange", 
+            "cash-coin",
             "piggy-bank",
             "globe", 
             "currency-bitcoin",
@@ -70,8 +74,12 @@ elif selected == "Hisse Senetleri":
     stocks.app()
 elif selected == "Endeksler":
     indices.app()
+elif selected == "VIOP":
+    viop.app()
 elif selected == "Döviz & Altın":
     forex.app()
+elif selected == "Tahvil & Bono":
+    bonds.app()
 elif selected == "Yatırım Fonları":
     funds.app()
 elif selected == "Makroekonomi":
