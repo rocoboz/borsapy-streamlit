@@ -154,8 +154,20 @@ def app():
         if st.button("Algoritmik Sıralamayı Başlat", use_container_width=True, type="primary"):
             with st.spinner("2000+ Fon taranıyor ve puanlanıyor..."):
                 try:
-                    ft_code = "YAT" if "YAT" in ftype else "EMK" if "EMK" in ftype else None
-                    df = bp.screen_funds(fund_type=ft_code)
+                    ft_codes = ["YAT"] if "YAT" in ftype else ["EMK"] if "EMK" in ftype else ["YAT", "EMK"]
+                    
+                    df_list = []
+                    for code in ft_codes:
+                        res = bp.screen_funds(fund_type=code, limit=5000)
+                        if isinstance(res, pd.DataFrame):
+                            df_list.append(res)
+                        elif isinstance(res, list) and res:
+                            df_list.append(pd.DataFrame(res))
+                            
+                    if df_list:
+                        df = pd.concat(df_list, ignore_index=True)
+                    else:
+                        df = pd.DataFrame()
                     
                     # Map periods
                     p_map = {
@@ -164,8 +176,8 @@ def app():
                     }
                     target_col = p_map[period]
                     
-                    if target_col not in df.columns:
-                        st.error(f"Seçilen dönem ({period}) için veri bulunamadı.")
+                    if df.empty or target_col not in df.columns:
+                        st.error(f"Seçilen dönem ({period}) veya kategori için veri bulunamadı.")
                     else:
                         # Drop nulls for target
                         df = df.dropna(subset=[target_col])
