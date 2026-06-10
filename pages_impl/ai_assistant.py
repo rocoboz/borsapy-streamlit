@@ -95,19 +95,20 @@ def app():
         
     # Display chat history
     for msg in st.session_state.messages:
-        if msg["role"] != "system" and msg["role"] != "tool": 
+        role = msg.get("role") if isinstance(msg, dict) else getattr(msg, "role", "")
+        if role != "system" and role != "tool": 
             # hide system and tool messages, and assistant tool calls
-            if msg["role"] == "assistant" and getattr(msg, "tool_calls", None):
+            if role == "assistant" and getattr(msg, "tool_calls", None):
                 continue
             if isinstance(msg, dict):
                 content = msg.get("content")
                 if content:
-                    with st.chat_message(msg["role"]):
+                    with st.chat_message(role):
                         render_message_with_charts(content)
             else:
                 # msg is an object (like ChatCompletionMessage)
-                if msg.content:
-                    with st.chat_message(msg.role):
+                if getattr(msg, "content", None):
+                    with st.chat_message(role):
                         render_message_with_charts(msg.content)
 
     # Chat Input
