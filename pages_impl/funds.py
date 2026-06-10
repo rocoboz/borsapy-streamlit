@@ -59,10 +59,13 @@ def app():
                     st.line_chart(hist['Price'])
                     
                     st.subheader("Varlık Dağılımı")
-                    alloc = fund.allocation
-                    if not alloc.empty:
-                        fig = px.pie(alloc, values='weight', names='asset_name', hole=0.4)
-                        st.plotly_chart(fig, use_container_width=True)
+                    try:
+                        alloc = fund.allocation
+                        if not alloc.empty:
+                            fig = px.pie(alloc, values='weight', names='asset_name', hole=0.4)
+                            st.plotly_chart(fig, use_container_width=True)
+                    except Exception as e:
+                        st.info("Varlık dağılımı verisi (Sunucu kısıtlamaları/TEFAS koruması nedeniyle) bu ortamda çekilemiyor.")
                         
                 with ftab2:
                     st.subheader("Getiri Performansı")
