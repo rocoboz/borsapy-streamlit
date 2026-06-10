@@ -143,31 +143,70 @@ def app():
                     st.error(f"Karşılaştırma hatası: {str(e)}")
 
     with tab3:
-        st.subheader("Fon Filtreleme (Screener)")
+        st.subheader("🏆 TEFAS Akıllı Algoritmik Fon Sıralaması (Ranking)")
+        st.caption("Gelişmiş finansal rasyolar ve kümülatif getiri değerlerini harmanlayan akıllı puanlama motoru.")
         
-        c1, c2 = st.columns(2)
-        ftype = c1.selectbox("Fon Tipi", ["YAT", "EMK", "Tümü"], index=0)
-        ret_per = c2.selectbox("Getiri Kriteri", ["1 Ay", "3 Ay", "Yılbaşı", "1 Yıl"])
-        min_ret = st.slider("Minimum Getiri (%)", 0, 200, 20)
+        c1, c2, c3 = st.columns(3)
+        period = c1.selectbox("Sıralama Dönemi", ["1 Ay", "3 Ay", "6 Ay", "Yılbaşı", "1 Yıl", "3 Yıl", "5 Yıl"], index=4)
+        ftype = c2.selectbox("Fon Tipi", ["Tümü", "YAT (Yatırım Fonları)", "EMK (Emeklilik Fonları)"], index=0)
+        algo_focus = c3.selectbox("Sıralama Algoritması Odağı", ["Akıllı Puan (Getiri/İstikrar)", "Sadece Getiri (%)"])
         
-        if st.button("Fonları Tara"):
-            try:
-                # Map inputs to borsapy args
-                ft_code = "YAT" if ftype == "YAT" else "EMK" if ftype == "EMK" else None
-                
-                kwargs = {}
-                if ret_per == "1 Ay": kwargs['min_return_1m'] = min_ret
-                elif ret_per == "3 Ay": kwargs['min_return_3m'] = min_ret
-                elif ret_per == "Yılbaşı": kwargs['min_return_ytd'] = min_ret
-                elif ret_per == "1 Yıl": kwargs['min_return_1y'] = min_ret
-                
-                res = bp.screen_funds(fund_type=ft_code, **kwargs)
-                
-                if not res.empty:
-                    st.success(f"{len(res)} fon bulundu.")
-                    st.dataframe(res)
-                else:
-                    st.warning("Kriterlere uygun fon bulunamadı.")
+        if st.button("Algoritmik Sıralamayı Başlat", use_container_width=True, type="primary"):
+            with st.spinner("2000+ Fon taranıyor ve puanlanıyor..."):
+                try:
+                    ft_code = "YAT" if "YAT" in ftype else "EMK" if "EMK" in ftype else None
+                    df = bp.screen_funds(fund_type=ft_code)
                     
-            except Exception as e:
-                st.error(f"Tarama hatası: {str(e)}")
+                    # Map periods
+                    p_map = {
+                        "1 Ay": "return_1m", "3 Ay": "return_3m", "6 Ay": "return_6m",
+                        "Yılbaşı": "return_ytd", "1 Yıl": "return_1y", "3 Yıl": "return_3y", "5 Yıl": "return_5y"
+                    }
+                    target_col = p_map[period]
+                    
+                    if target_col not in df.columns:
+                        st.error(f"Seçilen dönem ({period}) için veri bulunamadı.")
+                    else:
+                        # Drop nulls for target
+                        df = df.dropna(subset=[target_col])
+                        
+                        if algo_focus == "Sadece Getiri (%)":
+                            df['Smart Score'] = df[target_col]
+                            df = df.sort_values(by=target_col, ascending=False)
+                        else:
+                            # Akıllı Puan (Proxy for Sharpe/Stability)
+                            # %50 Return Percentile + %50 Stability (Positive returns across periods)
+                            df['ret_pct'] = df[target_col].rank(pct=True) * 100
+                            
+                            # Stability proxy: How many periods are positive out of all available
+                            periods = ['return_1m', 'return_3m', 'return_6m', 'return_1y']
+                            avail_periods = [p for p in periods if p in df.columns]
+                            
+                            stability_scores = []
+                            for idx, row in df.iterrows():
+                                pos_count = sum(1 for p in avail_periods if pd.notnull(row[p]) and row[p] > 0)
+                                stab_pct = (pos_count / len(avail_periods)) * 100 if avail_periods else 50
+                                stability_scores.append(stab_pct)
+                                
+                            df['stab_pct'] = stability_scores
+                            df['Smart Score'] = (df['ret_pct'] * 0.60) + (df['stab_pct'] * 0.40)
+                            
+                            df = df.sort_values(by='Smart Score', ascending=False)
+                            
+                        # Format output
+                        df['Sıra'] = range(1, len(df) + 1)
+                        display_cols = ['Sıra', 'fund_code', 'name', 'fund_type', target_col, 'Smart Score']
+                        
+                        # Add a nicely formatted dataframe
+                        out_df = df[display_cols].copy()
+                        out_df.columns = ['Derece', 'Fon Kodu', 'Fon Adı', 'Kategori', f'{period} Getiri (%)', 'Smart Score']
+                        
+                        # Format floats
+                        out_df[f'{period} Getiri (%)'] = out_df[f'{period} Getiri (%)'].map('{:.2f}'.format)
+                        out_df['Smart Score'] = out_df['Smart Score'].map('{:.1f}'.format)
+                        
+                        st.success(f"Algoritmik Sıralama Süzgecinden Geçen: **{len(out_df)}** Fon Saptanmıştır.")
+                        st.dataframe(out_df, use_container_width=True, hide_index=True)
+                        
+                except Exception as e:
+                    st.error(f"Sıralama hatası: {str(e)}")
