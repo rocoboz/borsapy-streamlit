@@ -21,25 +21,25 @@ def app():
             "base_url": "https://openrouter.ai/api/v1",
             "key_file": ".openrouter_key",
             "state_key": "openrouter_api_key",
-            "models": ["openrouter/auto", "openrouter/free", "google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.1-8b-instruct", "Diğer (Özel Model ID Gir)"]
+            "models": ["openrouter/auto", "openrouter/free", "google/gemini-3.5-flash", "google/gemini-3.1-pro", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-4-scout", "Diğer (Özel Model ID Gir)"]
         },
         "Groq": {
             "base_url": "https://api.groq.com/openai/v1",
             "key_file": ".groq_key",
             "state_key": "groq_api_key",
-            "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "Diğer (Özel Model ID Gir)"]
+            "models": ["llama-4-scout", "qwen3-32b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "Diğer (Özel Model ID Gir)"]
         },
         "DeepSeek": {
             "base_url": "https://api.deepseek.com/v1",
             "key_file": ".deepseek_key",
             "state_key": "deepseek_api_key",
-            "models": ["deepseek-chat", "deepseek-reasoner", "Diğer (Özel Model ID Gir)"]
+            "models": ["deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "Diğer (Özel Model ID Gir)"]
         },
         "Google Gemini": {
             "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
             "key_file": ".gemini_key",
             "state_key": "gemini_api_key",
-            "models": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro", "Diğer (Özel Model ID Gir)"]
+            "models": ["gemini-3.5-flash", "gemini-3.1-pro", "gemini-3.1-flash-lite", "gemini-2.5-flash", "Diğer (Özel Model ID Gir)"]
         }
     }
     
