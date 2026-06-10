@@ -82,6 +82,7 @@ def app():
     # Model Selection (Moved to Sidebar to save space)
     st.sidebar.markdown("### 🤖 Ajan Ayarları")
     model_choice = st.sidebar.selectbox("Yapay Zeka Modeli Seçin", [
+        "openrouter/free",
         "google/gemini-2.5-flash",
         "openai/gpt-4o",
         "anthropic/claude-3.5-sonnet",
