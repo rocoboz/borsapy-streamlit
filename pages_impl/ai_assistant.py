@@ -3,41 +3,6 @@ from openai import OpenAI
 import json
 import re
 
-def render_ai_chart(symbol):
-    from utils.data_loader import get_stock_history
-    import plotly.graph_objects as go
-    
-    df = get_stock_history(symbol, period="3mo")
-    if not df.empty and 'Close' in df.columns:
-        fig = go.Figure(data=[go.Candlestick(x=df.index,
-                        open=df['Open'],
-                        high=df['High'],
-                        low=df['Low'],
-                        close=df['Close'])])
-        fig.update_layout(
-            title=f"{symbol} Son 3 Aylık Fiyat Grafiği",
-            xaxis_title="",
-            yaxis_title="",
-            template="plotly_dark",
-            margin=dict(l=10, r=10, t=30, b=10),
-            height=300
-        )
-        import uuid
-        st.plotly_chart(fig, use_container_width=True, key=f"chart_{symbol}_{uuid.uuid4().hex}")
-    else:
-        st.warning(f"📊 {symbol} için grafik çizilemedi (Veri yok).")
-
-def render_message_with_charts(content):
-    # Split content by [CHART: SYMBOL]
-    parts = re.split(r'\[CHART:\s*([A-Za-z0-9_-]+)\]', content)
-    for i, part in enumerate(parts):
-        if i % 2 == 0:
-            if part.strip():
-                st.markdown(part)
-        else:
-            symbol = part.strip().upper()
-            render_ai_chart(symbol)
-
 def app():
     import os
     st.markdown("""
@@ -118,12 +83,12 @@ def app():
                 content = msg.get("content")
                 if content:
                     with st.chat_message(role):
-                        render_message_with_charts(content)
+                        st.markdown(content)
             else:
                 # msg is an object (like ChatCompletionMessage)
                 if getattr(msg, "content", None):
                     with st.chat_message(role):
-                        render_message_with_charts(msg.content)
+                        st.markdown(msg.content)
 
     # Chat Input
     if prompt := st.chat_input("Hisse, fon veya makro veriler hakkında soru sorun..."):
@@ -137,7 +102,7 @@ def app():
             from utils.ai_tools import AI_TOOLS_SCHEMA, AI_TOOLS_MAP
             
             # Build API messages for the current run
-            api_messages = [{"role": "system", "content": "Sen profesyonel, analitik ve objektif bir finans, borsa ve kripto uzmanısın. Gerçek verilere dayalı yorum yaparsın. İhtiyacın olan veriyi çekmek için sana verilen fonksiyonları (tools) çağırmalısın. DİKKAT: Kesinlikle geçmiş eğitim verilerini kullanarak rakam uydurma (hallucinate). Araçların sana vermediği hiçbir oranı, haberi veya fiyatı analize ekleme. Eğer elinde o veri yoksa net bir şekilde 'Şu an bu veriye ulaşamıyorum' de. Çıktılarını kullanıcıya sunarken daima temiz, okunabilir Markdown formatı kullan. Önemli rakamları kalın (bold) yaz, liste veya tablolarla veriyi düzenli bir şekilde sun ve emoji kullanarak metni sıkıcılıktan kurtar. EĞER kullanıcı bir hisse, emtia, döviz veya fon için grafik çizmeni isterse veya analizi grafikle desteklemenin iyi olacağını düşünüyorsan, metnin tam o noktasına [CHART: SEMBOL] formatında bir komut ekle. Örn: [CHART: THYAO] veya [CHART: gram-altin] veya [CHART: USD]."}]
+            api_messages = [{"role": "system", "content": "Sen profesyonel, analitik ve objektif bir finans, borsa ve kripto uzmanısın. Gerçek verilere dayalı yorum yaparsın. İhtiyacın olan veriyi çekmek için sana verilen fonksiyonları (tools) çağırmalısın. DİKKAT: Kesinlikle geçmiş eğitim verilerini kullanarak rakam uydurma (hallucinate). Araçların sana vermediği hiçbir oranı, haberi veya fiyatı analize ekleme. Eğer elinde o veri yoksa net bir şekilde 'Şu an bu veriye ulaşamıyorum' de. Çıktılarını kullanıcıya sunarken daima temiz, okunabilir Markdown formatı kullan. Önemli rakamları kalın (bold) yaz, liste veya tablolarla veriyi düzenli bir şekilde sun ve emoji kullanarak metni sıkıcılıktan kurtar."}]
             
             # Add conversation history
             for m in st.session_state.messages:
@@ -196,7 +161,7 @@ def app():
                     else:
                         ai_reply = response_message.content
                         with st.chat_message("assistant"):
-                            render_message_with_charts(ai_reply)
+                            st.markdown(ai_reply)
                         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
                         break
                 except Exception as e:
