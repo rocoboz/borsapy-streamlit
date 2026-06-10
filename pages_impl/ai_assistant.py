@@ -22,7 +22,8 @@ def render_ai_chart(symbol):
             margin=dict(l=10, r=10, t=30, b=10),
             height=300
         )
-        st.plotly_chart(fig, use_container_width=True)
+        import uuid
+        st.plotly_chart(fig, use_container_width=True, key=f"chart_{symbol}_{uuid.uuid4().hex}")
     else:
         st.warning(f"📊 {symbol} için grafik çizilemedi (Veri yok).")
 
