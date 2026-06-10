@@ -127,6 +127,34 @@ def get_latest_news(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
+def get_global_news() -> str:
+    """Gets the latest general economic and global news headlines to understand market sentiment."""
+    import requests
+    import xml.etree.ElementTree as ET
+    import json
+    
+    url = "https://www.trthaber.com/ekonomi_articles.rss"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    try:
+        res = requests.get(url, headers=headers)
+        res.encoding = 'utf-8'
+        if res.status_code == 200:
+            root = ET.fromstring(res.text)
+            items = []
+            for item in root.findall('.//item')[:10]:
+                title = item.find('title').text
+                pub_date = item.find('pubDate').text if item.find('pubDate') is not None else "Recent"
+                items.append(f"- {pub_date}: {title}")
+            return json.dumps({
+                "source": "Global & Economic News",
+                "latest_news": items
+            })
+        else:
+            return json.dumps({"error": f"HTTP Error {res.status_code} fetching global news."})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
 def get_macro_events() -> str:
     """Gets the upcoming/today's important macroeconomic events and the TCMB policy rate."""
     from utils.data_loader import get_economic_calendar, get_real_policy_rate
@@ -155,6 +183,7 @@ AI_TOOLS_MAP = {
     "get_technical_analysis": get_technical_analysis,
     "get_currency_and_gold_price": get_currency_and_gold_price,
     "get_latest_news": get_latest_news,
+    "get_global_news": get_global_news,
     "get_macro_events": get_macro_events
 }
 
@@ -242,6 +271,18 @@ AI_TOOLS_SCHEMA = [
                     }
                 },
                 "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_global_news",
+            "description": "Fetches the 10 most recent global economic and market news headlines. Use this when the user asks about the general state of the market, global developments, or macro economic news.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
             }
         }
     },
