@@ -32,7 +32,7 @@ def app():
 
         # State management
         if "selected_fund_code" not in st.session_state:
-            st.session_state.selected_fund_code = "AAK"
+            st.session_state.selected_fund_code = "MAC"
             
         if selected_fund:
             code = selected_fund.split(" - ")[0]

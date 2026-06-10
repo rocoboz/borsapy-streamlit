@@ -90,6 +90,7 @@ def get_crypto_price(symbol):
 def get_fund_info(code):
     try:
         fund = bp.Fund(code)
+        _ = fund.info # trigger fetch to catch exceptions
         return fund
     except:
         return None
