@@ -38,27 +38,36 @@ def render_message_with_charts(content):
             render_ai_chart(symbol)
 
 def app():
+    import os
     st.markdown("""
-    <div class="animate-fade-in" style="margin-bottom: 20px;">
-        <h1 style="color: #00d2ff; text-align: center;">🤖 Neo-Fintech Süper Ajan</h1>
-        <p style="text-align: center; opacity: 0.8;">BorsaPY fonksiyonlarını kendi kendine kullanarak profesyonel analiz yapan Ajan.</p>
+    <div class="animate-fade-in" style="margin-bottom: 5px;">
+        <h3 style="color: #00d2ff; text-align: center; margin-bottom: 0;">🤖 Neo-Fintech Süper Ajan</h3>
+        <p style="text-align: center; opacity: 0.8; font-size: 0.9em; margin-top: 5px;">BorsaPY fonksiyonlarını kullanarak profesyonel analiz yapan Ajan.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # 1. API Key Authentication
+    # 1. API Key Authentication (Persisted Locally)
+    KEY_FILE = ".openrouter_key"
+    
     if "openrouter_api_key" not in st.session_state:
-        st.session_state.openrouter_api_key = ""
+        if os.path.exists(KEY_FILE):
+            with open(KEY_FILE, "r") as f:
+                st.session_state.openrouter_api_key = f.read().strip()
+        else:
+            st.session_state.openrouter_api_key = ""
         
     if not st.session_state.openrouter_api_key:
         with st.container():
             st.warning("Ajanı kullanabilmek için lütfen bir OpenRouter API anahtarı girin.")
             api_key = st.text_input("OpenRouter API Anahtarı (sk-or-v1-...)", type="password")
             st.markdown("""
-            > 🔒 **Gizlilik & Güvenlik:** API anahtarınız sunucularımızda veya veritabanlarımızda **asla depolanmaz**. Sadece kendi tarayıcınızın geçici hafızasında (local session) tutulur ve model işlemleri haricinde hiçbir yere gönderilmez. Sayfayı kapattığınızda otomatik olarak silinir.
+            > 🔒 **Gizlilik & Güvenlik:** API anahtarınız sadece **bilgisayarınızda (local) gizli bir dosyada** depolanır. Sayfayı yenileseniz bile (F5) silinmez, internetteki hiçbir veritabanına gönderilmez.
             """)
             if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key.startswith("sk-or-"):
                     st.session_state.openrouter_api_key = api_key
+                    with open(KEY_FILE, "w") as f:
+                        f.write(api_key)
                     st.rerun()
                 else:
                     st.error("Lütfen geçerli bir OpenRouter anahtarı girin.")
@@ -70,8 +79,9 @@ def app():
         api_key=st.session_state.openrouter_api_key,
     )
     
-    # Model Selection
-    model_choice = st.selectbox("Yapay Zeka Modeli Seçin", [
+    # Model Selection (Moved to Sidebar to save space)
+    st.sidebar.markdown("### 🤖 Ajan Ayarları")
+    model_choice = st.sidebar.selectbox("Yapay Zeka Modeli Seçin", [
         "google/gemini-2.5-flash",
         "openai/gpt-4o",
         "anthropic/claude-3.5-sonnet",
@@ -80,13 +90,15 @@ def app():
     ], index=0)
     
     if model_choice == "Diğer (Özel Model ID Gir)":
-        model = st.text_input("OpenRouter Model ID", value="openrouter/auto", help="OpenRouter'da bulunan herhangi bir model ID'sini yazabilirsiniz (örn: deepseek/deepseek-chat, google/gemini-pro vb.)")
+        model = st.sidebar.text_input("OpenRouter Model ID", value="openrouter/auto", help="OpenRouter'da bulunan herhangi bir model ID'sini yazabilirsiniz (örn: deepseek/deepseek-chat, google/gemini-pro vb.)")
     else:
         model = model_choice
 
     # Logout button
     if st.sidebar.button("🔌 API Bağlantısını Kes", key="logout"):
         st.session_state.openrouter_api_key = ""
+        if os.path.exists(KEY_FILE):
+            os.remove(KEY_FILE)
         st.rerun()
 
     # 3. Chat Interface
@@ -138,7 +150,8 @@ def app():
                         model=model,
                         messages=api_messages,
                         tools=AI_TOOLS_SCHEMA,
-                        tool_choice="auto"
+                        tool_choice="auto",
+                        max_tokens=2500
                     )
                     
                     response_message = response.choices[0].message
