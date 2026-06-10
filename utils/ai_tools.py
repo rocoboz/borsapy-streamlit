@@ -53,14 +53,14 @@ def get_technical_analysis(symbol: str) -> str:
         if df.empty:
             return json.dumps({"error": "No historical data found for technical analysis."})
         
-        # Calculate a simple RSI approximation if borsapy TechnicalAnalyzer is heavy
-        # Actually borsapy has bp.calculate_rsi
-        df = bp.calculate_rsi(df, period=14)
-        latest_rsi = df['RSI_14'].iloc[-1] if 'RSI_14' in df.columns else 'N/A'
+        # Calculate RSI
+        rsi = bp.calculate_rsi(df, period=14)
+        latest_rsi = rsi.iloc[-1] if not rsi.empty else 'N/A'
         
-        df = bp.calculate_macd(df)
-        latest_macd = df['MACD_12_26_9'].iloc[-1] if 'MACD_12_26_9' in df.columns else 'N/A'
-        macdsignal = df['MACDs_12_26_9'].iloc[-1] if 'MACDs_12_26_9' in df.columns else 'N/A'
+        # Calculate MACD
+        macd_df = bp.calculate_macd(df)
+        latest_macd = macd_df['MACD'].iloc[-1] if 'MACD' in macd_df.columns else 'N/A'
+        macdsignal = macd_df['Signal'].iloc[-1] if 'Signal' in macd_df.columns else 'N/A'
         
         return json.dumps({
             "symbol": symbol,
