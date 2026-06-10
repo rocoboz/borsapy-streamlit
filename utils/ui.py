@@ -34,13 +34,11 @@ def metric_card(label, value, delta=None, color="normal", icon=None):
     
     icon_div = f'<div style="font-size: 1.5em; margin-bottom: 8px; color: #00d2ff;">{icon}</div>' if icon else ""
 
-    html_content = f"""
-<div class="custom-card animate-fade-in">
-    {icon_div}
-    <div style="font-size: 0.85em; opacity: 0.6; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">{label}</div>
-    <div style="font-size: 2em; font-weight: 800; background: linear-gradient(90deg, #fff, #a0c4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 119, 255, 0.3);">{value} {delta_html}</div>
-</div>
-"""
+    html_content = f"""<div class="custom-card animate-fade-in">
+{icon_div}
+<div style="font-size: 0.85em; opacity: 0.6; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">{label}</div>
+<div style="font-size: 2em; font-weight: 800; background: linear-gradient(90deg, #fff, #a0c4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 119, 255, 0.3);">{value} {delta_html}</div>
+</div>"""
     st.markdown(html_content, unsafe_allow_html=True)
 
 def apply_chart_style(fig):
