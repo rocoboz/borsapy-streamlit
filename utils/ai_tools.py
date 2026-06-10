@@ -71,11 +71,27 @@ def get_technical_analysis(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
+def get_currency_and_gold_price(symbol: str) -> str:
+    """Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin')."""
+    from utils.data_loader import get_fx_rate
+    try:
+        val, _ = get_fx_rate(symbol)
+        if val:
+            return json.dumps({
+                "symbol": symbol,
+                "price_TRY": val
+            })
+        else:
+            return json.dumps({"error": f"Symbol {symbol} not found. Try 'USD', 'EUR', 'gram-altin' or 'ons-altin'."})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
 # Mapping dictionary for tool calling router
 AI_TOOLS_MAP = {
     "get_live_price": get_live_price,
     "get_financial_metrics": get_financial_metrics,
-    "get_technical_analysis": get_technical_analysis
+    "get_technical_analysis": get_technical_analysis,
+    "get_currency_and_gold_price": get_currency_and_gold_price
 }
 
 # OpenAI schema format
@@ -125,6 +141,23 @@ AI_TOOLS_SCHEMA = [
                     "symbol": {
                         "type": "string",
                         "description": "The stock symbol, e.g. 'THYAO'"
+                    }
+                },
+                "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_currency_and_gold_price",
+            "description": "Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin', 'ons-altin'). Use this when the user asks for gold, dollar, euro, etc.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "The currency or gold symbol, e.g., 'USD', 'EUR', 'gram-altin', 'ons-altin'"
                     }
                 },
                 "required": ["symbol"]
