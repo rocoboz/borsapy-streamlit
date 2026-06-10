@@ -278,7 +278,7 @@ AI_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_global_news",
-            "description": "Fetches the 10 most recent global economic and market news headlines. Use this when the user asks about the general state of the market, global developments, or macro economic news.",
+            "description": "Fetches the 10 most recent global economic and market news headlines. You MUST use this tool for EVERY specific stock analysis to understand the macro environment, as well as for general market questions.",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -290,7 +290,7 @@ AI_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_macro_events",
-            "description": "Fetches the upcoming/today's high-importance macroeconomic events (Economic Calendar) and the current TCMB policy rate. Use this to understand market expectations.",
+            "description": "Fetches the upcoming/today's high-importance macroeconomic events (Economic Calendar) and current TCMB policy rate. You MUST use this tool for EVERY specific stock analysis to understand the macro environment, as well as for general market questions.",
             "parameters": {
                 "type": "object",
                 "properties": {},
