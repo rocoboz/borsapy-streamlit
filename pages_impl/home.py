@@ -9,24 +9,21 @@ def app():
     
     # Header
     st.markdown("""
-    <div class="animate-fade-in" style="margin-bottom: 30px; text-align: center;">
-        <h1 style="font-size: 3.5em; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
-            BorsaPY Pro
+    <div class="animate-fade-in" style="margin-bottom: 20px; text-align: center;">
+        <h1 style="font-size: 3em; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
+            Piyasa Kokpiti
         </h1>
-        <p style="font-size: 1.2em; opacity: 0.8; max-width: 600px; margin: 0 auto;">
-            Gelişmiş finansal analiz, yapay zeka destekli öngörüler ve profesyonel portföy yönetimi.
+        <p style="font-size: 1.1em; opacity: 0.8; max-width: 600px; margin: 0 auto;">
+            BorsaPY Pro'ya hoş geldiniz. Küresel ve yerel piyasaların anlık röntgeni.
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Quick Market Glance
-    st.subheader("📡 Piyasa Özeti")
+    st.markdown("---")
     
+    # 1. Quick Market Glance
     m1, m2, m3, m4 = st.columns(4)
-    
-    # Data Fetching
     bist = get_index_info("XU100") 
-    
     usd_val, _ = get_fx_rate("USD")
     gold_val, _ = get_fx_rate("gram-altin")
     btc_val, _ = get_crypto_price("BTCTRY")
@@ -44,46 +41,96 @@ def app():
              metric_card("BIST 100", f"{val:,.0f}", f"%{chg:.2f}", icon="📈")
          else:
              metric_card("BIST 100", "N/A", icon="📈")
+             
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # Animations Section
-    if lottie_chart:
-        from streamlit_lottie import st_lottie
-        c_anim, c_desc = st.columns([1, 2])
-        with c_anim:
-            st_lottie(lottie_chart, height=250, key="home_anim")
-        with c_desc:
-            st.markdown("### 🚀 Yeni Nesil Finans")
-            st.info("Yapay zeka algoritmalarımız piyasayı 7/24 tarayarak size en doğru sinyalleri üretir.")
-            
-    st.markdown("---")
+    # Dashboard Grid
+    c_left, c_right = st.columns([1.2, 1])
     
-    # Feature Showcase
-    st.markdown("### 🌟 Öne Çıkan Özellikler")
-    c1, c2, c3 = st.columns(3)
-    
-    with c1:
-        st.markdown("""
-        #### 📈 Detaylı Hisse Analizi
-        BIST hisselerinin teknik ve temel analizi.
-        * Fiyat Grafikleri
-        * Bilançolar
-        * KAP Haberleri
-        """)
-    
-    with c2:
-        st.markdown("""
-        #### 💰 Fon Karşılaştırma
-        TEFAS fonlarını analiz edin ve kıyaslayın.
-        * Getiri Sıralaması
-        * Portföy Dağılımı
-        * Risk Analizi
-        """)
-    
-    with c3:
-        st.markdown("""
-        #### 🤖 Yapay Zeka & Portföy
-        Portföyünüzü oluşturun ve takip edin.
-        * PnL Takibi
-        * Varlık Dağılımı
-        * Teknik Sinyaller
-        """)
+    with c_left:
+        # 📈 BIST Öncüleri (Majör Hisseler)
+        st.subheader("📈 BIST Lokomotifleri")
+        bist_symbols = ["THYAO", "TUPRS", "ISCTR", "KCHOL"]
+        bcols = st.columns(len(bist_symbols))
+        for idx, sym in enumerate(bist_symbols):
+            with bcols[idx]:
+                ticker = get_ticker_info(sym)
+                if ticker:
+                    try:
+                        info = ticker.fast_info
+                        price = info.get('last_price', 0)
+                        # Estimate change if not directly available
+                        prev_close = info.get('previous_close', price)
+                        chg_pct = ((price - prev_close) / prev_close * 100) if prev_close else 0
+                        metric_card(sym, f"{price:.2f}", f"%{chg_pct:.2f}", icon="")
+                    except:
+                        metric_card(sym, "N/A", icon="")
+                else:
+                    metric_card(sym, "N/A", icon="")
+                    
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 🪙 Kripto Takibi
+        st.subheader("🪙 Popüler Kriptolar")
+        crypto_symbols = [("Ethereum", "ETHTRY"), ("Solana", "SOLTRY"), ("Ripple", "XRPTRY")]
+        ccols = st.columns(len(crypto_symbols))
+        for idx, (name, sym) in enumerate(crypto_symbols):
+            with ccols[idx]:
+                val, _ = get_crypto_price(sym)
+                if val:
+                    metric_card(name, f"{val:,.2f} ₺", icon="")
+                else:
+                    metric_card(name, "N/A", icon="")
+
+    with c_right:
+        # 🔥 Yıldız Fonlar
+        st.subheader("🔥 Günün Yıldız Fonları (Top 5)")
+        with st.spinner("Fonlar çekiliyor..."):
+            import borsapy as bp
+            try:
+                # Get top 5 funds by 1Y return (default behavior of screen_funds without limit returns top 50, we slice 5)
+                top_funds = bp.screen_funds(limit=5)
+                if top_funds:
+                    for i, f in enumerate(top_funds):
+                        name_short = f['name'][:25] + "..." if len(f['name']) > 25 else f['name']
+                        ret1y = f.get('return_1y', 0)
+                        if ret1y is None: ret1y = 0
+                        st.markdown(f"""
+                        <div class="custom-card" style="padding: 12px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="color: #a0a5b9; font-weight: bold; margin-right: 10px;">#{i+1}</span>
+                                    <span style="font-weight: bold; color: #00d2ff;">{f['fund_code']}</span>
+                                    <br><span style="font-size: 0.8em; opacity: 0.8;">{name_short}</span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="color: #00ff9d; font-weight: bold;">+{ret1y:.2f}%</span>
+                                    <br><span style="font-size: 0.7em; opacity: 0.5;">Son 1 Yıl</span>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("Fon verisi geçici olarak alınamadı.")
+            except Exception as e:
+                st.error("TEFAS bağlantı hatası.")
+                
+        # 📅 Makroekonomi Özeti
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.subheader("📅 Makroekonomi")
+        import borsapy as bp
+        try:
+            rate = bp.policy_rate()
+            if isinstance(rate, float) or isinstance(rate, int):
+                st.markdown(f"""
+                <div class="custom-card" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-size: 1.2em;">🇹🇷 TCMB Politika Faizi</span>
+                    </div>
+                    <div>
+                        <span style="font-size: 1.5em; font-weight: bold; color: #ff0055;">%{rate}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        except:
+            pass
