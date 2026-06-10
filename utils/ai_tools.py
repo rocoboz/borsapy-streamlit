@@ -140,13 +140,35 @@ def get_latest_news(category: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
+def get_macro_events() -> str:
+    """Gets the upcoming/today's important macroeconomic events and the TCMB policy rate."""
+    from utils.data_loader import get_economic_calendar, get_real_policy_rate
+    import json
+    try:
+        rate = get_real_policy_rate()
+        cal_df = get_economic_calendar()
+        events = []
+        if cal_df is not None and not cal_df.empty:
+            # high importance events
+            high = cal_df[cal_df['Importance'] == 'high']
+            for _, row in high.iterrows():
+                events.append(f"{row['Time']} - {row['Country']}: {row['Event']}")
+                
+        return json.dumps({
+            "TCMB_Policy_Rate": rate if rate else "N/A",
+            "Important_Macro_Events_Today": events if events else "Bugün için yüksek önem dereceli kritik bir veri akışı bulunmuyor."
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
 # Mapping dictionary for tool calling router
 AI_TOOLS_MAP = {
     "get_live_price": get_live_price,
     "get_financial_metrics": get_financial_metrics,
     "get_technical_analysis": get_technical_analysis,
     "get_currency_and_gold_price": get_currency_and_gold_price,
-    "get_latest_news": get_latest_news
+    "get_latest_news": get_latest_news,
+    "get_macro_events": get_macro_events
 }
 
 # OpenAI schema format
@@ -233,6 +255,18 @@ AI_TOOLS_SCHEMA = [
                     }
                 },
                 "required": ["category"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_events",
+            "description": "Fetches the upcoming/today's high-importance macroeconomic events (Economic Calendar) and the current TCMB policy rate. Use this to understand market expectations.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
             }
         }
     }
