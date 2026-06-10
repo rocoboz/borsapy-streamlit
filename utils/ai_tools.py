@@ -72,17 +72,71 @@ def get_technical_analysis(symbol: str) -> str:
         return json.dumps({"error": str(e)})
 
 def get_currency_and_gold_price(symbol: str) -> str:
-    """Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin')."""
-    from utils.data_loader import get_fx_rate
+    """Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin') and its 1-month and 3-month change."""
+    import borsapy as bp
     try:
-        val, _ = get_fx_rate(symbol)
-        if val:
+        fx = bp.FX(symbol)
+        cur = fx.current
+        val = cur.get('last') if isinstance(cur, dict) else cur
+        
+        if not val:
+            return json.dumps({"error": f"Symbol {symbol} not found. Try 'USD', 'EUR', 'gram-altin' or 'ons-altin'."})
+            
+        # Calculate history
+        df_3m = fx.history(period="3mo")
+        change_1m = "N/A"
+        change_3m = "N/A"
+        if not df_3m.empty and len(df_3m) >= 20: # Approx 1 month
+            try:
+                # ~21 trading days in a month
+                past_1m_price = df_3m['Close'].iloc[-21] if len(df_3m) >= 21 else df_3m['Close'].iloc[0]
+                change_1m = round(((val - past_1m_price) / past_1m_price) * 100, 2)
+                
+                past_3m_price = df_3m['Close'].iloc[0]
+                change_3m = round(((val - past_3m_price) / past_3m_price) * 100, 2)
+            except:
+                pass
+                
+        return json.dumps({
+            "symbol": symbol,
+            "price_TRY": val,
+            "1_month_change_percent": change_1m,
+            "3_month_change_percent": change_3m
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+def get_latest_news(category: str) -> str:
+    """Gets the latest news headlines from Investing.com RSS feeds."""
+    import requests
+    import xml.etree.ElementTree as ET
+    
+    # Map category to investing.com RSS feeds
+    rss_map = {
+        "all": "https://tr.investing.com/rss/news_285.rss",
+        "bist": "https://tr.investing.com/rss/news_302.rss",
+        "commodity": "https://tr.investing.com/rss/news_11.rss",
+        "forex": "https://tr.investing.com/rss/news_1.rss"
+    }
+    
+    url = rss_map.get(category.lower(), rss_map["all"])
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    try:
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            root = ET.fromstring(res.content)
+            items = []
+            for item in root.findall('./channel/item')[:5]:
+                title = item.find('title').text
+                pub_date = item.find('pubDate').text
+                items.append(f"- {pub_date}: {title}")
             return json.dumps({
-                "symbol": symbol,
-                "price_TRY": val
+                "category": category,
+                "latest_news": items
             })
         else:
-            return json.dumps({"error": f"Symbol {symbol} not found. Try 'USD', 'EUR', 'gram-altin' or 'ons-altin'."})
+            return json.dumps({"error": f"HTTP Error {res.status_code} fetching news."})
     except Exception as e:
         return json.dumps({"error": str(e)})
 
@@ -91,7 +145,8 @@ AI_TOOLS_MAP = {
     "get_live_price": get_live_price,
     "get_financial_metrics": get_financial_metrics,
     "get_technical_analysis": get_technical_analysis,
-    "get_currency_and_gold_price": get_currency_and_gold_price
+    "get_currency_and_gold_price": get_currency_and_gold_price,
+    "get_latest_news": get_latest_news
 }
 
 # OpenAI schema format
@@ -151,7 +206,7 @@ AI_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_currency_and_gold_price",
-            "description": "Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin', 'ons-altin'). Use this when the user asks for gold, dollar, euro, etc.",
+            "description": "Gets the live price and 1-month/3-month percentage changes of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin', 'ons-altin'). Use this when the user asks for gold, dollar, euro, etc.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -161,6 +216,23 @@ AI_TOOLS_SCHEMA = [
                     }
                 },
                 "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_latest_news",
+            "description": "Fetches the 5 most recent live news headlines from Investing.com. Crucial for understanding fundamental triggers.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "The category of news to fetch: 'all' (general market), 'bist' (Turkish stocks), 'commodity' (gold, oil, silver), 'forex' (currencies)."
+                    }
+                },
+                "required": ["category"]
             }
         }
     }
