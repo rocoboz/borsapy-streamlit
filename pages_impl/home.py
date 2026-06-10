@@ -58,15 +58,14 @@ def app():
                 if ticker:
                     try:
                         info = ticker.fast_info
-                        price = info.get('last_price', 0)
-                        # Estimate change if not directly available
-                        prev_close = info.get('previous_close', price)
-                        chg_pct = ((price - prev_close) / prev_close * 100) if prev_close else 0
-                        metric_card(sym, f"{price:.2f}", f"%{chg_pct:.2f}", icon="")
-                    except:
-                        metric_card(sym, "N/A", icon="")
+                        price = getattr(info, 'last_price', 0)
+                        prev_close = getattr(info, 'previous_close', price)
+                        chg_pct = ((price - prev_close) / prev_close * 100) if prev_close and prev_close > 0 else 0
+                        metric_card(sym, f"{price:.2f}", f"%{chg_pct:.2f}", icon=None)
+                    except Exception as e:
+                        metric_card(sym, "N/A", icon=None)
                 else:
-                    metric_card(sym, "N/A", icon="")
+                    metric_card(sym, "N/A", icon=None)
                     
         st.markdown("<br>", unsafe_allow_html=True)
         
@@ -78,9 +77,9 @@ def app():
             with ccols[idx]:
                 val, _ = get_crypto_price(sym)
                 if val:
-                    metric_card(name, f"{val:,.2f} ₺", icon="")
+                    metric_card(name, f"{val:,.2f} ₺", icon=None)
                 else:
-                    metric_card(name, "N/A", icon="")
+                    metric_card(name, "N/A", icon=None)
 
     with c_right:
         # 🔥 Yıldız Fonlar
@@ -88,19 +87,19 @@ def app():
         with st.spinner("Fonlar çekiliyor..."):
             import borsapy as bp
             try:
-                # Get top 5 funds by 1Y return (default behavior of screen_funds without limit returns top 50, we slice 5)
                 top_funds = bp.screen_funds(limit=5)
-                if top_funds:
-                    for i, f in enumerate(top_funds):
-                        name_short = f['name'][:25] + "..." if len(f['name']) > 25 else f['name']
-                        ret1y = f.get('return_1y', 0)
-                        if ret1y is None: ret1y = 0
+                if top_funds is not None and not top_funds.empty:
+                    for i, row in top_funds.iterrows():
+                        fname = row['name']
+                        name_short = fname[:25] + "..." if len(fname) > 25 else fname
+                        ret1y = row.get('return_1y', 0)
+                        if ret1y is None or str(ret1y) == 'nan': ret1y = 0
                         st.markdown(f"""
                         <div class="custom-card" style="padding: 12px; margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <span style="color: #a0a5b9; font-weight: bold; margin-right: 10px;">#{i+1}</span>
-                                    <span style="font-weight: bold; color: #00d2ff;">{f['fund_code']}</span>
+                                    <span style="font-weight: bold; color: #00d2ff;">{row['fund_code']}</span>
                                     <br><span style="font-size: 0.8em; opacity: 0.8;">{name_short}</span>
                                 </div>
                                 <div style="text-align: right;">
