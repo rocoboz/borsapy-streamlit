@@ -2,7 +2,7 @@ import streamlit as st
 import borsapy as bp
 import pandas as pd
 
-@st.cache_data(ttl=86400) # Daily cache
+@st.cache_data(ttl=86400) # Hisse listesi günde 1 kez güncellenir
 def get_stock_list():
     try:
         df = bp.companies()
@@ -33,7 +33,7 @@ def get_crypto_list():
     except:
         return []
 
-@st.cache_resource(ttl=600)  # Cache for 10 minutes
+@st.cache_resource(ttl=900)  # Hisse fiyatları 15 dakikada bir (900 sn)
 def get_ticker_info(symbol):
     try:
         ticker = bp.Ticker(symbol)
@@ -43,7 +43,7 @@ def get_ticker_info(symbol):
     except Exception as e:
         return None
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=900) # Hisse geçmiş verileri 15 dakikada bir
 def get_stock_history(symbol, period="1y", interval="1d"):
     try:
         ticker = bp.Ticker(symbol)
@@ -52,11 +52,11 @@ def get_stock_history(symbol, period="1y", interval="1d"):
     except:
         return pd.DataFrame()
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400) # Endeks listesi günde 1 kez
 def get_all_indices():
     return bp.all_indices()
 
-@st.cache_resource(ttl=600)
+@st.cache_resource(ttl=900) # Endeks değerleri 15 dakikada bir
 def get_index_info(symbol):
     try:
         idx = bp.Index(symbol)
@@ -86,7 +86,7 @@ def get_crypto_price(symbol):
     except:
         return None, pd.DataFrame()
 
-@st.cache_resource(ttl=3600) # Funds update daily
+@st.cache_resource(ttl=7200) # Fon detayları: TEFAS sabah 9-12 arası günceller, 2 saatte bir tazelemek (7200 sn) en sağlıklısı
 def get_fund_info(code):
     try:
         fund = bp.Fund(code)
