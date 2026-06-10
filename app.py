@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from utils.ui import load_css, load_lottieurl
-from pages_impl import home, stocks, indices, forex, funds, crypto, portfolio, analysis, tools, macro, viop, bonds
+from pages_impl import home, stocks, indices, forex, funds, crypto, portfolio, analysis, tools, macro, viop, bonds, ai_assistant
 
 # Page Config
 st.set_page_config(
@@ -28,6 +28,7 @@ with st.sidebar:
         menu_title=None,
         options=[
             "Ana Sayfa", 
+            "🤖 AI Asistan",
             "Hisse Senetleri", 
             "Endeksler", 
             "VIOP",
@@ -42,6 +43,7 @@ with st.sidebar:
         ],
         icons=[
             "house", 
+            "robot",
             "graph-up-arrow", 
             "list-ol", 
             "graph-up",
@@ -70,6 +72,8 @@ with st.sidebar:
 # Routing
 if selected == "Ana Sayfa":
     home.app()
+elif selected == "🤖 AI Asistan":
+    ai_assistant.app()
 elif selected == "Hisse Senetleri":
     stocks.app()
 elif selected == "Endeksler":
