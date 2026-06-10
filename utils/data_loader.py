@@ -94,3 +94,16 @@ def get_fund_info(code):
         return fund
     except:
         return None
+
+@st.cache_data(ttl=3600)
+def get_real_policy_rate():
+    try:
+        import borsapy as bp
+        provider = bp._providers.tcmb_rates.TCMBRatesProvider()
+        data = provider._fetch_and_parse_table(bp._providers.tcmb_rates.TCMB_URLS['policy'])
+        if data:
+            return data[-1]['lending']
+    except:
+        pass
+    return None
+
