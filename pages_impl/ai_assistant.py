@@ -12,58 +12,82 @@ def app():
     </div>
     """, unsafe_allow_html=True)
     
-    # 1. API Key Authentication (Persisted Locally)
-    KEY_FILE = ".openrouter_key"
+    # 1. AI Provider Selection
+    st.sidebar.markdown("### 🤖 Ajan Ayarları")
+    provider_choice = st.sidebar.selectbox("Yapay Zeka Sağlayıcısı (Provider)", ["OpenRouter", "Groq", "DeepSeek", "Google Gemini"], index=0)
     
-    if "openrouter_api_key" not in st.session_state:
+    provider_config = {
+        "OpenRouter": {
+            "base_url": "https://openrouter.ai/api/v1",
+            "key_file": ".openrouter_key",
+            "state_key": "openrouter_api_key",
+            "models": ["openrouter/auto", "openrouter/free", "google/gemini-2.5-flash", "google/gemini-2.5-pro", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.1-8b-instruct", "Diğer (Özel Model ID Gir)"]
+        },
+        "Groq": {
+            "base_url": "https://api.groq.com/openai/v1",
+            "key_file": ".groq_key",
+            "state_key": "groq_api_key",
+            "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "Diğer (Özel Model ID Gir)"]
+        },
+        "DeepSeek": {
+            "base_url": "https://api.deepseek.com/v1",
+            "key_file": ".deepseek_key",
+            "state_key": "deepseek_api_key",
+            "models": ["deepseek-chat", "deepseek-reasoner", "Diğer (Özel Model ID Gir)"]
+        },
+        "Google Gemini": {
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "key_file": ".gemini_key",
+            "state_key": "gemini_api_key",
+            "models": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro", "Diğer (Özel Model ID Gir)"]
+        }
+    }
+    
+    conf = provider_config[provider_choice]
+    KEY_FILE = conf["key_file"]
+    state_key = conf["state_key"]
+    
+    # Check if key exists in file
+    if state_key not in st.session_state:
         if os.path.exists(KEY_FILE):
             with open(KEY_FILE, "r") as f:
-                st.session_state.openrouter_api_key = f.read().strip()
+                st.session_state[state_key] = f.read().strip()
         else:
-            st.session_state.openrouter_api_key = ""
-        
-    if not st.session_state.openrouter_api_key:
+            st.session_state[state_key] = ""
+            
+    # Login Screen if no key
+    if not st.session_state[state_key]:
         with st.container():
-            st.warning("Ajanı kullanabilmek için lütfen bir OpenRouter API anahtarı girin.")
-            api_key = st.text_input("OpenRouter API Anahtarı (sk-or-v1-...)", type="password")
-            st.markdown("""
-            > 🔒 **Gizlilik & Güvenlik:** API anahtarınız sadece **bilgisayarınızda (local) gizli bir dosyada** depolanır. Sayfayı yenileseniz bile (F5) silinmez, internetteki hiçbir veritabanına gönderilmez.
-            """)
+            st.warning(f"Ajanı kullanabilmek için lütfen bir {provider_choice} API anahtarı girin.")
+            api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password")
+            st.markdown(f"> 🔒 **Gizlilik:** Anahtarınız sadece bilgisayarınızda **{KEY_FILE}** dosyasında şifresiz olarak saklanır.")
             if st.button("Ajanı Başlat", use_container_width=True):
-                if api_key.startswith("sk-or-"):
-                    st.session_state.openrouter_api_key = api_key
+                if api_key:
+                    st.session_state[state_key] = api_key
                     with open(KEY_FILE, "w") as f:
                         f.write(api_key)
                     st.rerun()
                 else:
-                    st.error("Lütfen geçerli bir OpenRouter anahtarı girin.")
+                    st.error("Lütfen geçerli bir anahtar girin.")
         return
 
     # 2. Setup AI Client
     client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=st.session_state.openrouter_api_key,
+        base_url=conf["base_url"],
+        api_key=st.session_state[state_key],
     )
     
-    # Model Selection (Moved to Sidebar to save space)
-    st.sidebar.markdown("### 🤖 Ajan Ayarları")
-    model_choice = st.sidebar.selectbox("Yapay Zeka Modeli Seçin", [
-        "openrouter/free",
-        "google/gemini-2.5-flash",
-        "openai/gpt-4o",
-        "anthropic/claude-3.5-sonnet",
-        "meta-llama/llama-3.1-8b-instruct",
-        "Diğer (Özel Model ID Gir)"
-    ], index=0)
+    # Model Selection
+    model_choice = st.sidebar.selectbox("Yapay Zeka Modeli Seçin", conf["models"], index=0)
     
     if model_choice == "Diğer (Özel Model ID Gir)":
-        model = st.sidebar.text_input("OpenRouter Model ID", value="openrouter/auto", help="OpenRouter'da bulunan herhangi bir model ID'sini yazabilirsiniz (örn: deepseek/deepseek-chat, google/gemini-pro vb.)")
+        model = st.sidebar.text_input("Özel Model ID", help="Sağlayıcının desteklediği herhangi bir model ID'sini yazın.")
     else:
         model = model_choice
 
     # Logout button
-    if st.sidebar.button("🔌 API Bağlantısını Kes", key="logout"):
-        st.session_state.openrouter_api_key = ""
+    if st.sidebar.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout"):
+        st.session_state[state_key] = ""
         if os.path.exists(KEY_FILE):
             os.remove(KEY_FILE)
         st.rerun()
