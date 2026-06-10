@@ -6,6 +6,9 @@
 
 **BorsaPY Pro**, Borsa İstanbul (BIST), Kripto Paralar, Döviz, Altın ve Yatırım Fonları için geliştirilmiş, yapay zeka destekli profesyonel bir finansal analiz ve portföy yönetimi panelidir.
 
+### 🎥 Ekran Görüntüsü / Önizleme
+![BorsaPY Önizleme](assets/preview.webp)
+
 ## 🌟 Öne Çıkan Özellikler
 
 ### 📊 Detaylı Piyasa Analizi
