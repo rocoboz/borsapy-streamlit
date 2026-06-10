@@ -106,37 +106,24 @@ def get_currency_and_gold_price(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
-def get_latest_news(category: str) -> str:
-    """Gets the latest news headlines from Investing.com RSS feeds."""
-    import requests
-    import xml.etree.ElementTree as ET
-    
-    # Map category to investing.com RSS feeds
-    rss_map = {
-        "all": "https://tr.investing.com/rss/news_285.rss",
-        "bist": "https://tr.investing.com/rss/news_302.rss",
-        "commodity": "https://tr.investing.com/rss/news_11.rss",
-        "forex": "https://tr.investing.com/rss/news_1.rss"
-    }
-    
-    url = rss_map.get(category.lower(), rss_map["all"])
-    headers = {'User-Agent': 'Mozilla/5.0'}
+def get_latest_news(symbol: str) -> str:
+    """Gets the latest KAP (Public Disclosure) news for a specific BIST symbol."""
+    import borsapy as bp
+    import json
     
     try:
-        res = requests.get(url, headers=headers)
-        if res.status_code == 200:
-            root = ET.fromstring(res.content)
+        ticker = bp.Ticker(symbol)
+        news_df = ticker.news
+        if news_df is not None and not news_df.empty:
             items = []
-            for item in root.findall('./channel/item')[:5]:
-                title = item.find('title').text
-                pub_date = item.find('pubDate').text
-                items.append(f"- {pub_date}: {title}")
+            for _, row in news_df.head(5).iterrows():
+                items.append(f"- {row['Date']}: {row['Title']}")
             return json.dumps({
-                "category": category,
+                "symbol": symbol,
                 "latest_news": items
             })
         else:
-            return json.dumps({"error": f"HTTP Error {res.status_code} fetching news."})
+            return json.dumps({"error": f"No recent news found for {symbol}."})
     except Exception as e:
         return json.dumps({"error": str(e)})
 
@@ -245,16 +232,16 @@ AI_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_latest_news",
-            "description": "Fetches the 5 most recent live news headlines from Investing.com. Crucial for understanding fundamental triggers.",
+            "description": "Fetches the 5 most recent KAP (Public Disclosure) news for a specific BIST stock symbol. Crucial for understanding fundamental triggers.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "category": {
+                    "symbol": {
                         "type": "string",
-                        "description": "The category of news to fetch: 'all' (general market), 'bist' (Turkish stocks), 'commodity' (gold, oil, silver), 'forex' (currencies)."
+                        "description": "The stock symbol, e.g. 'THYAO', 'ASELS'"
                     }
                 },
-                "required": ["category"]
+                "required": ["symbol"]
             }
         }
     },
