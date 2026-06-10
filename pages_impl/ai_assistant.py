@@ -108,7 +108,7 @@ def app():
             for m in st.session_state.messages:
                 api_messages.append(m)
 
-            max_tool_calls = 5
+            max_tool_calls = 10
             tool_call_count = 0
             
             while tool_call_count < max_tool_calls:
