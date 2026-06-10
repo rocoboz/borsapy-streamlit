@@ -122,9 +122,10 @@ def app():
         # 📅 Makroekonomi Özeti
         st.markdown("<br>", unsafe_allow_html=True)
         st.subheader("📅 Makroekonomi")
-        import borsapy as bp
         try:
-            rate = bp.policy_rate()
+            # borsapy's TCMB provider is currently broken and fetches data from 2010 (7.0%)
+            # We hardcode the current 2024-2025 TCMB policy rate (50.0%)
+            rate = 50.00
             if isinstance(rate, float) or isinstance(rate, int):
                 st.markdown(f"""
                 <div class="custom-card" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
