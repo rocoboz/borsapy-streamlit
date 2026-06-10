@@ -61,12 +61,18 @@ def app():
     )
     
     # Model Selection
-    model = st.selectbox("Yapay Zeka Modeli Seçin", [
+    model_choice = st.selectbox("Yapay Zeka Modeli Seçin", [
         "google/gemini-2.5-flash",
         "meta-llama/llama-3-8b-instruct:free",
         "anthropic/claude-3.5-sonnet",
-        "openai/gpt-4o"
+        "openai/gpt-4o",
+        "Diğer (Özel Model ID Gir)"
     ], index=0)
+    
+    if model_choice == "Diğer (Özel Model ID Gir)":
+        model = st.text_input("OpenRouter Model ID", value="openrouter/auto", help="OpenRouter'da bulunan herhangi bir model ID'sini yazabilirsiniz (örn: deepseek/deepseek-chat, google/gemini-pro vb.)")
+    else:
+        model = model_choice
 
     # Logout button
     if st.sidebar.button("🔌 API Bağlantısını Kes", key="logout"):
