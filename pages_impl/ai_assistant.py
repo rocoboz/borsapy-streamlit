@@ -87,7 +87,7 @@ def app():
             from utils.ai_tools import AI_TOOLS_SCHEMA, AI_TOOLS_MAP
             
             # Build API messages for the current run
-            api_messages = [{"role": "system", "content": "Sen profesyonel, analitik ve objektif bir finans, borsa ve kripto uzmanısın. Gerçek verilere dayalı yorum yaparsın. İhtiyacın olan veriyi çekmek için sana verilen fonksiyonları (tools) çağırmalısın."}]
+            api_messages = [{"role": "system", "content": "Sen profesyonel, analitik ve objektif bir finans, borsa ve kripto uzmanısın. Gerçek verilere dayalı yorum yaparsın. İhtiyacın olan veriyi çekmek için sana verilen fonksiyonları (tools) çağırmalısın. DİKKAT: Kesinlikle geçmiş eğitim verilerini kullanarak rakam uydurma (hallucinate). Araçların sana vermediği hiçbir oranı, haberi veya fiyatı analize ekleme. Eğer elinde o veri yoksa net bir şekilde 'Şu an bu veriye ulaşamıyorum' de."}]
             
             # Add conversation history
             for m in st.session_state.messages:
