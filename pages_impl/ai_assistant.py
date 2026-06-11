@@ -121,6 +121,8 @@ def app():
         model = st.sidebar.text_input("Özel Model ID", help="Sağlayıcının desteklediği herhangi bir model ID'sini yazın.")
     else:
         model = model_choice
+        
+    reasoning_choice = st.sidebar.selectbox("Düşünme Seviyesi (Reasoning)", ["Yok (Standart)", "low", "medium", "high"], index=0, help="Sadece Gemini 3.5 Flash ve o1 gibi destekleyen modellerde çalışır.")
 
     # Logout button
     if st.sidebar.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout"):
@@ -285,13 +287,17 @@ def app():
                         
                     api_messages[0] = {"role": "system", "content": system_prompt}
                     
-                    response = client.chat.completions.create(
-                        model=model,
-                        messages=api_messages,
-                        tools=curr_cfg["schema"],
-                        tool_choice="auto",
-                        max_tokens=2500
-                    )
+                    kwargs = {
+                        "model": model,
+                        "messages": api_messages,
+                        "tools": curr_cfg["schema"],
+                        "tool_choice": "auto",
+                        "max_tokens": 2500
+                    }
+                    if reasoning_choice != "Yok (Standart)":
+                        kwargs["reasoning_effort"] = reasoning_choice
+                        
+                    response = client.chat.completions.create(**kwargs)
                     
                     response_message = response.choices[0].message
                     
