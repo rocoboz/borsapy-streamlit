@@ -83,7 +83,7 @@ def app():
         "Google Gemini": {
             "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
             "state_key": "gemini_api_key",
-            "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-8b", "gemini-2.0-flash-exp", "Diğer (Özel Model ID Gir)"]
+            "models": ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-2.0-flash-001", "gemini-2.0-pro-exp-02-05", "gemini-2.0-flash-lite-preview-02-05", "Diğer (Özel Model ID Gir)"]
         }
     }
     
