@@ -60,6 +60,29 @@ def get_multiple_stock_financials(symbols: str) -> str:
             
     return json.dumps({"peer_comparison": results})
 
+def screen_bist_stocks(max_pe: float = None, min_roe: float = None) -> str:
+    """Tarayıcı (Screener) ile BIST30'da ucuz / kârlı hisseleri bulur."""
+    import borsapy as bp
+    try:
+        screener = bp.Screener()
+        screener.set_index('BIST30')
+        if max_pe is not None:
+            screener.add_filter('pe', max=float(max_pe))
+        if min_roe is not None:
+            screener.add_filter('roe', min=float(min_roe))
+            
+        df = screener.run()
+        if df.empty:
+            return json.dumps({"error": "No stocks matched the criteria."})
+        
+        # Sadece ilk 5 sonucu dönelim (Token tasarrufu)
+        df_top = df.head(5)
+        # Sadece sembol ve ismi dönelim (ve varsa kriterleri)
+        result_list = df_top.to_dict(orient='records')
+        return json.dumps({"screener_results": result_list})
+    except Exception as e:
+        return json.dumps({"error": f"Screener execution failed: {str(e)}"})
+
 def get_stock_technicals(symbol: str) -> str:
     try:
         ticker = bp.Ticker(symbol)
@@ -158,6 +181,19 @@ def get_fund_risk_metrics(symbol: str) -> str:
         sharpe = fund.sharpe_ratio if hasattr(fund, 'sharpe_ratio') else "N/A"
         return json.dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe})
     except Exception as e: return json.dumps({"error": str(e)})
+
+def get_tcmb_rates() -> str:
+    """Gets Turkey's current Central Bank (TCMB) interest rates."""
+    import borsapy as bp
+    try:
+        tcmb = bp.TCMB()
+        # Ensure we convert pandas dataframe to dictionary correctly
+        rates_df = tcmb.rates
+        if rates_df is not None and not rates_df.empty:
+            return json.dumps({"tcmb_rates": rates_df.to_dict(orient='records')})
+        return json.dumps({"tcmb_rates": "No data"})
+    except Exception as e:
+        return json.dumps({"error": f"TCMB execution failed: {str(e)}"})
 
 # --- ROUTER TRANSFER TOOLS (Mock tools that don't do much but signal intent) ---
 def transfer_to_stock_expert() -> str:

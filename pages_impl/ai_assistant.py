@@ -20,9 +20,42 @@ def save_profile(data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 def app():
+    # --- Neo-Fintech UI Styling ---
     st.markdown("""
+    <style>
+    /* Sidebar Glassmorphism */
+    [data-testid="stSidebar"] {
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(12px);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Main Chat Area Polish */
+    .stChatMessage {
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 10px;
+    }
+    .stChatMessage[data-testid="chatAvatarIcon-user"] {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .stChatMessage[data-testid="chatAvatarIcon-assistant"] {
+        background: rgba(16, 185, 129, 0.05);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    /* Title Animation */
+    .title-glow {
+        color: #00d2ff; 
+        text-align: center; 
+        margin-bottom: 0;
+        text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+    </style>
     <div class="animate-fade-in" style="margin-bottom: 5px;">
-        <h3 style="color: #00d2ff; text-align: center; margin-bottom: 0;">🤖 Neo-Fintech Süper Ajan</h3>
+        <h3 class="title-glow">🤖 Neo-Fintech Süper Ajan</h3>
         <p style="text-align: center; opacity: 0.8; font-size: 0.9em; margin-top: 5px;">BorsaPY fonksiyonlarını kullanarak profesyonel analiz yapan Ajan.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -156,10 +189,10 @@ def app():
             from agents.prompts import ROUTER_PROMPT, STOCK_EXPERT_PROMPT, CRYPTO_EXPERT_PROMPT, FUND_EXPERT_PROMPT, MACRO_EXPERT_PROMPT
             from agents.schemas import ROUTER_SCHEMA, STOCK_SCHEMA, CRYPTO_SCHEMA, FUND_SCHEMA, MACRO_SCHEMA
             from agents.tools import (
-                get_stock_financials, get_multiple_stock_financials, get_stock_technicals, 
+                get_stock_financials, get_multiple_stock_financials, get_stock_technicals, screen_bist_stocks,
                 get_crypto_technicals, get_crypto_momentum,
                 get_fund_performance, get_fund_allocation, get_fund_risk_metrics,
-                transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert
+                get_tcmb_rates, transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert
             )
             from utils.ai_tools import get_latest_news, get_global_news, get_macro_events, get_currency_and_gold_price
             
@@ -167,6 +200,7 @@ def app():
                 "get_stock_financials": get_stock_financials,
                 "get_multiple_stock_financials": get_multiple_stock_financials,
                 "get_stock_technicals": get_stock_technicals,
+                "screen_bist_stocks": screen_bist_stocks,
                 "get_latest_news": get_latest_news,
                 "get_global_news": get_global_news,
                 "get_macro_events": get_macro_events,
@@ -176,6 +210,7 @@ def app():
                 "get_fund_allocation": get_fund_allocation,
                 "get_fund_risk_metrics": get_fund_risk_metrics,
                 "get_currency_and_gold_price": get_currency_and_gold_price,
+                "get_tcmb_rates": get_tcmb_rates,
                 "transfer_to_stock_expert": transfer_to_stock_expert,
                 "transfer_to_crypto_expert": transfer_to_crypto_expert,
                 "transfer_to_fund_expert": transfer_to_fund_expert,

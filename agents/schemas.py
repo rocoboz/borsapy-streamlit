@@ -61,6 +61,20 @@ STOCK_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "screen_bist_stocks",
+            "description": "Screens BIST30 stocks based on criteria like max PE (max_pe) or min ROE (min_roe). Returns top 5 cheap/profitable stocks. Call this when user asks 'Bana ucuz hisseleri bul' or 'Hisse öner'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "max_pe": {"type": "number", "description": "Maximum Price to Earnings ratio (e.g. 10.0)"},
+                    "min_roe": {"type": "number", "description": "Minimum Return on Equity percentage (e.g. 20.0)"}
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_stock_technicals",
             "description": "Gets RSI, MACD, SMA50, SMA200, Supertrend for a BIST stock.",
             "parameters": {
@@ -225,6 +239,14 @@ MACRO_SCHEMA = [
                 "properties": {"symbol": {"type": "string"}},
                 "required": ["symbol"]
             }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_tcmb_rates",
+            "description": "Gets Turkey's current Central Bank (TCMB) interest rates (Policy Rate, Overnight Rate). Use this to analyze Turkey's monetary policy.",
+            "parameters": {"type": "object", "properties": {}}
         }
     }
 ]
