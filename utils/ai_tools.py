@@ -21,7 +21,7 @@ def get_live_price(symbol: str) -> str:
         return json.dumps({"error": str(e)})
 
 def get_financial_metrics(symbol: str) -> str:
-    """Gets fundamental financial metrics like P/E, P/B, ROE for a symbol."""
+    """Gets fundamental financial metrics like P/E, P/B, ROE, analyst targets, recommendations for a symbol."""
     ticker = get_ticker_info(symbol)
     if not ticker:
         return json.dumps({"error": f"Symbol {symbol} not found."})
@@ -33,23 +33,34 @@ def get_financial_metrics(symbol: str) -> str:
         roe = info.get('returnOnEquity', 'N/A')
         market_cap = info.get('marketCap', 'N/A')
         
+        try:
+            targets = ticker.analyst_price_targets
+        except:
+            targets = "N/A"
+            
+        try:
+            recs = ticker.recommendations_summary
+        except:
+            recs = "N/A"
+        
         return json.dumps({
             "symbol": symbol,
             "PE_Ratio": pe,
             "Price_to_Book": pb,
             "ROE": roe,
-            "Market_Cap_TRY": market_cap
+            "Market_Cap_TRY": market_cap,
+            "Analyst_Price_Targets": targets,
+            "Recommendations_Summary": recs
         })
     except Exception as e:
         return json.dumps({"error": str(e)})
 
 def get_technical_analysis(symbol: str) -> str:
-    """Gets basic technical analysis indicators like RSI and MACD."""
-    # To keep it fast, we will just fetch history and calculate RSI via borsapy
+    """Gets basic technical analysis indicators like RSI, MACD, SMA, Bollinger, Supertrend."""
     try:
         import borsapy as bp
         ticker = bp.Ticker(symbol)
-        df = ticker.history(period="1mo")
+        df = ticker.history(period="1y") # Need more history for SMA200
         if df.empty:
             return json.dumps({"error": "No historical data found for technical analysis."})
         
@@ -62,11 +73,24 @@ def get_technical_analysis(symbol: str) -> str:
         latest_macd = macd_df['MACD'].iloc[-1] if 'MACD' in macd_df.columns else 'N/A'
         macdsignal = macd_df['Signal'].iloc[-1] if 'Signal' in macd_df.columns else 'N/A'
         
+        # New Indicators
+        try:
+            sma50 = ticker.sma(sma_period=50)
+            sma200 = ticker.sma(sma_period=200)
+            bollinger = ticker.bollinger_bands()
+            supertrend = ticker.supertrend()
+        except:
+            sma50, sma200, bollinger, supertrend = "N/A", "N/A", "N/A", "N/A"
+            
         return json.dumps({
             "symbol": symbol,
             "RSI_14": float(latest_rsi) if latest_rsi != 'N/A' else 'N/A',
             "MACD": float(latest_macd) if latest_macd != 'N/A' else 'N/A',
-            "MACD_Signal": float(macdsignal) if macdsignal != 'N/A' else 'N/A'
+            "MACD_Signal": float(macdsignal) if macdsignal != 'N/A' else 'N/A',
+            "SMA50": sma50,
+            "SMA200": sma200,
+            "Bollinger_Bands": bollinger,
+            "Supertrend": supertrend
         })
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -210,7 +234,7 @@ AI_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_financial_metrics",
-            "description": "Gets fundamental financial metrics like P/E (F/K), P/B (PD/DD), ROE, and Market Cap for a company.",
+            "description": "Gets fundamental metrics (P/E, P/B, ROE) and EXPERT data (Analyst Price Targets, Buy/Sell Recommendations) for a company.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -227,7 +251,7 @@ AI_TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_technical_analysis",
-            "description": "Calculates and returns technical indicators like RSI and MACD for a given stock symbol.",
+            "description": "Calculates technical indicators like RSI, MACD, SMA50, SMA200, Bollinger Bands, and Supertrend for a given stock.",
             "parameters": {
                 "type": "object",
                 "properties": {
