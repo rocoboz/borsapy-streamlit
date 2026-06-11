@@ -292,7 +292,7 @@ def app():
                         "messages": api_messages,
                         "tools": curr_cfg["schema"],
                         "tool_choice": "auto",
-                        "max_tokens": 2500
+                        "max_tokens": 8192
                     }
                     if reasoning_choice != "Yok (Standart)":
                         kwargs["reasoning_effort"] = reasoning_choice
