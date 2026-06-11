@@ -4,7 +4,6 @@ import json
 import re
 
 def app():
-    import os
     st.markdown("""
     <div class="animate-fade-in" style="margin-bottom: 5px;">
         <h3 style="color: #00d2ff; text-align: center; margin-bottom: 0;">🤖 Neo-Fintech Süper Ajan</h3>
@@ -19,53 +18,42 @@ def app():
     provider_config = {
         "OpenRouter": {
             "base_url": "https://openrouter.ai/api/v1",
-            "key_file": ".openrouter_key",
             "state_key": "openrouter_api_key",
             "models": ["openrouter/auto", "openrouter/free", "google/gemini-3.5-flash", "google/gemini-3.1-pro", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-4-scout", "Diğer (Özel Model ID Gir)"]
         },
         "Groq": {
             "base_url": "https://api.groq.com/openai/v1",
-            "key_file": ".groq_key",
             "state_key": "groq_api_key",
             "models": ["llama-4-scout", "qwen3-32b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "Diğer (Özel Model ID Gir)"]
         },
         "DeepSeek": {
             "base_url": "https://api.deepseek.com/v1",
-            "key_file": ".deepseek_key",
             "state_key": "deepseek_api_key",
             "models": ["deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "Diğer (Özel Model ID Gir)"]
         },
         "Google Gemini": {
             "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-            "key_file": ".gemini_key",
             "state_key": "gemini_api_key",
             "models": ["gemini-3.5-flash", "gemini-3.1-pro", "gemini-3.1-flash-lite", "gemini-2.5-flash", "Diğer (Özel Model ID Gir)"]
         }
     }
     
     conf = provider_config[provider_choice]
-    KEY_FILE = conf["key_file"]
     state_key = conf["state_key"]
     
-    # Check if key exists in file
+    # Check if key exists in session state
     if state_key not in st.session_state:
-        if os.path.exists(KEY_FILE):
-            with open(KEY_FILE, "r") as f:
-                st.session_state[state_key] = f.read().strip()
-        else:
-            st.session_state[state_key] = ""
+        st.session_state[state_key] = ""
             
     # Login Screen if no key
     if not st.session_state[state_key]:
         with st.container():
             st.warning(f"Ajanı kullanabilmek için lütfen bir {provider_choice} API anahtarı girin.")
             api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password")
-            st.markdown(f"> 🔒 **Gizlilik:** Anahtarınız sadece bilgisayarınızda **{KEY_FILE}** dosyasında şifresiz olarak saklanır.")
+            st.markdown("> 🔒 **Gizlilik:** Anahtarınız sunucuya veya herhangi bir dosyaya kaydedilmez. Sadece bu oturum (session) boyunca tarayıcı belleğinde geçici olarak saklanır.")
             if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key:
                     st.session_state[state_key] = api_key
-                    with open(KEY_FILE, "w") as f:
-                        f.write(api_key)
                     st.rerun()
                 else:
                     st.error("Lütfen geçerli bir anahtar girin.")
@@ -88,8 +76,6 @@ def app():
     # Logout button
     if st.sidebar.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout"):
         st.session_state[state_key] = ""
-        if os.path.exists(KEY_FILE):
-            os.remove(KEY_FILE)
         st.rerun()
 
     # 3. Chat Interface
