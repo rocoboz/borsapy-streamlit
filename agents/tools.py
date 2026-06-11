@@ -7,16 +7,22 @@ def get_stock_financials(symbol: str) -> str:
     ticker = get_ticker_info(symbol)
     if not ticker: return json.dumps({"error": f"Symbol {symbol} not found."})
     try:
+        usd_rate = float(bp.FX('USD').current['last'])
         info = ticker.info
         targets = ticker.analyst_price_targets if hasattr(ticker, 'analyst_price_targets') else "N/A"
-        recs = ticker.recommendations_summary if hasattr(ticker, 'recommendations_summary') else "N/A"
+        if isinstance(targets, dict):
+            for k in ['current', 'low', 'high', 'mean', 'median']:
+                if k in targets and targets[k]:
+                    targets[k] = round(targets[k] / usd_rate, 2)
+                    
         return json.dumps({
             "symbol": symbol,
+            "Currency": "USD",
             "PE_Ratio": info.get('trailingPE', 'N/A'),
             "Price_to_Book": info.get('priceToBook', 'N/A'),
             "ROE": info.get('returnOnEquity', 'N/A'),
-            "Analyst_Price_Targets": targets,
-            "Recommendations": recs
+            "Analyst_Price_Targets_USD": targets,
+            "Recommendations": ticker.recommendations_summary if hasattr(ticker, 'recommendations_summary') else "N/A"
         })
     except Exception as e: return json.dumps({"error": str(e)})
 
@@ -25,23 +31,36 @@ def get_stock_technicals(symbol: str) -> str:
         ticker = bp.Ticker(symbol)
         df = ticker.history(period="1y")
         if df.empty: return json.dumps({"error": "No data"})
+        
+        # Convert historical prices to USD
+        try:
+            fx = bp.FX('USD').history(period="1y")
+            fx.index = fx.index.tz_localize(None).normalize()
+            df_temp = df.copy()
+            df_temp.index = df_temp.index.tz_localize(None).normalize()
+            fx_mapped = fx['Close'].reindex(df_temp.index).ffill().bfill()
+            for col in ['Open', 'High', 'Low', 'Close']:
+                df[col] = df[col] / fx_mapped.values
+        except: pass
+            
         rsi = bp.calculate_rsi(df, period=14)
         macd_df = bp.calculate_macd(df)
-        try: sma50 = ticker.sma(sma_period=50)
+        try: sma50 = float(bp.calculate_sma(df, period=50).iloc[-1])
         except: sma50 = "N/A"
-        try: sma200 = ticker.sma(sma_period=200)
+        try: sma200 = float(bp.calculate_sma(df, period=200).iloc[-1])
         except: sma200 = "N/A"
-        try: supertrend = ticker.supertrend()
+        try: supertrend = bp.calculate_supertrend(df).iloc[-1].to_dict()
         except: supertrend = "N/A"
         
         return json.dumps({
             "symbol": symbol,
-            "Price": df['Close'].iloc[-1],
+            "Currency": "USD",
+            "Price_USD": float(df['Close'].iloc[-1]),
             "RSI_14": float(rsi.iloc[-1]) if not rsi.empty else 'N/A',
             "MACD": float(macd_df['MACD'].iloc[-1]) if 'MACD' in macd_df.columns else 'N/A',
-            "SMA50": sma50,
-            "SMA200": sma200,
-            "Supertrend": supertrend
+            "SMA50_USD": sma50,
+            "SMA200_USD": sma200,
+            "Supertrend_USD": supertrend
         })
     except Exception as e: return json.dumps({"error": str(e)})
 
