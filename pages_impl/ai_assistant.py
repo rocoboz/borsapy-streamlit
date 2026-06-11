@@ -295,17 +295,7 @@ def app():
                         "max_tokens": 2500
                     }
                     if reasoning_choice != "Yok (Standart)":
-                        if provider_choice == "Google Gemini":
-                            kwargs["extra_body"] = {
-                                "google": {
-                                    "thinking_config": {
-                                        "thinking_level": reasoning_choice,
-                                        "include_thoughts": True
-                                    }
-                                }
-                            }
-                        else:
-                            kwargs["reasoning_effort"] = reasoning_choice
+                        kwargs["reasoning_effort"] = reasoning_choice
                         
                     response = client.chat.completions.create(**kwargs)
                     
