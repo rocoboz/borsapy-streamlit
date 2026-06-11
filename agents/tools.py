@@ -50,7 +50,8 @@ def get_stock_technicals(symbol: str) -> str:
 def get_crypto_technicals(symbol: str) -> str:
     """Gets crypto technicals using borsapy.Crypto"""
     try:
-        if not symbol.endswith("-USD"): symbol += "-USD"
+        symbol = symbol.replace("-", "").upper()
+        if not symbol.endswith("USDT") and not symbol.endswith("TRY"): symbol += "USDT"
         crypto = bp.Crypto(symbol)
         df = crypto.history(period="6mo")
         if df.empty: return json.dumps({"error": "No data"})
@@ -67,7 +68,8 @@ def get_crypto_technicals(symbol: str) -> str:
 def get_crypto_momentum(symbol: str) -> str:
     """Gets crypto recent performance"""
     try:
-        if not symbol.endswith("-USD"): symbol += "-USD"
+        symbol = symbol.replace("-", "").upper()
+        if not symbol.endswith("USDT") and not symbol.endswith("TRY"): symbol += "USDT"
         crypto = bp.Crypto(symbol)
         df = crypto.history(period="1mo")
         if df.empty: return json.dumps({"error": "No data"})
