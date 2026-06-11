@@ -192,13 +192,13 @@ def app():
 
         # Agent Loop
         with st.spinner("Swarm Orkestratörü piyasayı analiz ediyor..."):
-            from agents.prompts import ROUTER_PROMPT, STOCK_EXPERT_PROMPT, CRYPTO_EXPERT_PROMPT, FUND_EXPERT_PROMPT, MACRO_EXPERT_PROMPT
-            from agents.schemas import ROUTER_SCHEMA, STOCK_SCHEMA, CRYPTO_SCHEMA, FUND_SCHEMA, MACRO_SCHEMA
+            from agents.prompts import ROUTER_PROMPT, STOCK_EXPERT_PROMPT, CRYPTO_EXPERT_PROMPT, FUND_EXPERT_PROMPT, MACRO_EXPERT_PROMPT, WARRANT_EXPERT_PROMPT
+            from agents.schemas import ROUTER_SCHEMA, STOCK_SCHEMA, CRYPTO_SCHEMA, FUND_SCHEMA, MACRO_SCHEMA, WARRANT_SCHEMA
             from agents.tools import (
                 get_stock_financials, get_multiple_stock_financials, get_stock_technicals, screen_bist_stocks,
                 get_crypto_technicals, get_crypto_momentum,
                 get_fund_performance, get_fund_allocation, get_fund_risk_metrics,
-                get_tcmb_rates, transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert
+                get_tcmb_rates, transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert, transfer_to_warrant_expert
             )
             from utils.ai_tools import get_latest_news, get_global_news, get_macro_events, get_currency_and_gold_price
             
@@ -220,7 +220,8 @@ def app():
                 "transfer_to_stock_expert": transfer_to_stock_expert,
                 "transfer_to_crypto_expert": transfer_to_crypto_expert,
                 "transfer_to_fund_expert": transfer_to_fund_expert,
-                "transfer_to_macro_expert": transfer_to_macro_expert
+                "transfer_to_macro_expert": transfer_to_macro_expert,
+                "transfer_to_warrant_expert": transfer_to_warrant_expert
             }
 
             if "current_agent" not in st.session_state:
@@ -278,7 +279,8 @@ def app():
                         "stock": {"prompt": STOCK_EXPERT_PROMPT, "schema": STOCK_SCHEMA},
                         "crypto": {"prompt": CRYPTO_EXPERT_PROMPT, "schema": CRYPTO_SCHEMA},
                         "fund": {"prompt": FUND_EXPERT_PROMPT, "schema": FUND_SCHEMA},
-                        "macro": {"prompt": MACRO_EXPERT_PROMPT, "schema": MACRO_SCHEMA}
+                        "macro": {"prompt": MACRO_EXPERT_PROMPT, "schema": MACRO_SCHEMA},
+                        "warrant": {"prompt": WARRANT_EXPERT_PROMPT, "schema": WARRANT_SCHEMA}
                     }
                     curr_cfg = agent_config[st.session_state.current_agent]
                     
@@ -329,6 +331,9 @@ def app():
                             elif function_name == "transfer_to_macro_expert":
                                 st.session_state.current_agent = "macro"
                                 st.toast("Ajan Değiştirildi: Makro & Emtia Uzmanı devrede!", icon="🌍")
+                            elif function_name == "transfer_to_warrant_expert":
+                                st.session_state.current_agent = "warrant"
+                                st.toast("Ajan Değiştirildi: Varant & Türev Uzmanı devrede!", icon="🎰")
                                 
                             if function_to_call:
                                 try:

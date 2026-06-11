@@ -30,6 +30,14 @@ ROUTER_SCHEMA = [
             "description": "Call this to transfer the conversation to the Macro/Commodity Expert. Use this when the user asks about Interest Rates, Gold (Altın), USD (Dolar), Euro, Bonds, or broad global/geopolitical news (savaş vb).",
             "parameters": {"type": "object", "properties": {}}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "transfer_to_warrant_expert",
+            "description": "Call this to transfer the conversation to the Warrant (Varant) & Derivatives Expert. Use this when the user explicitly asks for warrants (varant), leveraged trades, or options for a specific stock/index/commodity.",
+            "parameters": {"type": "object", "properties": {}}
+        }
     }
 ]
 
@@ -246,6 +254,53 @@ MACRO_SCHEMA = [
         "function": {
             "name": "get_tcmb_rates",
             "description": "Gets Turkey's current Central Bank (TCMB) interest rates (Policy Rate, Overnight Rate). Use this to analyze Turkey's monetary policy.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    }
+]
+
+WARRANT_SCHEMA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_stock_technicals",
+            "description": "Gets RSI, MACD, SMA50, SMA200, Supertrend for the underlying stock.",
+            "parameters": {
+                "type": "object",
+                "properties": {"symbol": {"type": "string"}},
+                "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_currency_and_gold_price",
+            "description": "Gets live price for underlying commodities (e.g., 'ons-altin', 'USD').",
+            "parameters": {
+                "type": "object",
+                "properties": {"symbol": {"type": "string"}},
+                "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_latest_news",
+            "description": "Fetches the 5 most recent KAP news for a specific BIST stock symbol. News catalysts are critical for warrant direction.",
+            "parameters": {
+                "type": "object",
+                "properties": {"symbol": {"type": "string"}},
+                "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_events",
+            "description": "Fetches high-importance macroeconomic events that could affect the underlying asset.",
             "parameters": {"type": "object", "properties": {}}
         }
     }

@@ -222,3 +222,6 @@ def transfer_to_fund_expert() -> str:
 
 def transfer_to_macro_expert() -> str:
     return json.dumps({"status": "Transferred to Macro Expert. Ajan değişti."})
+
+def transfer_to_warrant_expert() -> str:
+    return json.dumps({"status": "Transferred to Warrant Expert. Ajan değişti."})
