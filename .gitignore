@@ -15,6 +15,12 @@ venv.bak/
 # Streamlit
 .streamlit/secrets.toml
 
+# Local API key files
+.openrouter_key
+.groq_key
+.deepseek_key
+.gemini_key
+
 # IDEs
 .vscode/
 .idea/
