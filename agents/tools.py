@@ -173,7 +173,7 @@ def get_fund_allocation(symbol: str) -> str:
         alloc = fund.allocation
         if alloc is not None and hasattr(alloc, 'to_dict'):
             alloc = alloc.to_dict(orient='records')
-        return json.dumps({"symbol": symbol, "allocation": alloc})
+        return json.dumps({"symbol": symbol, "allocation": alloc}, default=str)
     except Exception as e: return json.dumps({"error": str(e)})
 
 def get_fund_risk_metrics(symbol: str) -> str:
@@ -194,7 +194,7 @@ def get_fund_risk_metrics(symbol: str) -> str:
             if hasattr(sharpe_val, 'to_dict'): sharpe = sharpe_val.to_dict(orient='records')
             else: sharpe = str(sharpe_val)
             
-        return json.dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe})
+        return json.dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe}, default=str)
     except Exception as e: return json.dumps({"error": str(e)})
 
 def get_tcmb_rates() -> str:
