@@ -171,14 +171,29 @@ def get_fund_allocation(symbol: str) -> str:
     try:
         fund = bp.Fund(symbol)
         alloc = fund.allocation
+        if alloc is not None and hasattr(alloc, 'to_dict'):
+            alloc = alloc.to_dict(orient='records')
         return json.dumps({"symbol": symbol, "allocation": alloc})
     except Exception as e: return json.dumps({"error": str(e)})
 
 def get_fund_risk_metrics(symbol: str) -> str:
     try:
         fund = bp.Fund(symbol)
-        risk = fund.risk_metrics if hasattr(fund, 'risk_metrics') else "N/A"
-        sharpe = fund.sharpe_ratio if hasattr(fund, 'sharpe_ratio') else "N/A"
+        
+        risk = "N/A"
+        if hasattr(fund, 'risk_metrics'):
+            risk_val = fund.risk_metrics
+            if callable(risk_val): risk_val = risk_val()
+            if hasattr(risk_val, 'to_dict'): risk = risk_val.to_dict(orient='records')
+            else: risk = str(risk_val)
+            
+        sharpe = "N/A"
+        if hasattr(fund, 'sharpe_ratio'):
+            sharpe_val = fund.sharpe_ratio
+            if callable(sharpe_val): sharpe_val = sharpe_val()
+            if hasattr(sharpe_val, 'to_dict'): sharpe = sharpe_val.to_dict(orient='records')
+            else: sharpe = str(sharpe_val)
+            
         return json.dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe})
     except Exception as e: return json.dumps({"error": str(e)})
 
