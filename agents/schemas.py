@@ -22,6 +22,14 @@ ROUTER_SCHEMA = [
             "description": "Call this to transfer the conversation to the Mutual Fund (Yatırım Fonu) Expert Agent. Use this when the user asks about TEFAS funds, mutual funds, or portfolio allocation.",
             "parameters": {"type": "object", "properties": {}}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "transfer_to_macro_expert",
+            "description": "Call this to transfer the conversation to the Macro/Commodity Expert. Use this when the user asks about Interest Rates, Gold (Altın), USD (Dolar), Euro, Bonds, or broad global/geopolitical news (savaş vb).",
+            "parameters": {"type": "object", "properties": {}}
+        }
     }
 ]
 
@@ -112,6 +120,14 @@ CRYPTO_SCHEMA = [
             "description": "Fetches global economic news. Important for crypto (e.g. FED news).",
             "parameters": {"type": "object", "properties": {}}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_events",
+            "description": "Fetches the past and upcoming high-importance macroeconomic events with expectations vs actuals.",
+            "parameters": {"type": "object", "properties": {}}
+        }
     }
 ]
 
@@ -145,6 +161,53 @@ FUND_SCHEMA = [
         "function": {
             "name": "get_fund_risk_metrics",
             "description": "Gets Risk metrics, Volatility, and Sharpe Ratio for a fund.",
+            "parameters": {
+                "type": "object",
+                "properties": {"symbol": {"type": "string"}},
+                "required": ["symbol"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_global_news",
+            "description": "Fetches the 10 most recent global economic and market news headlines.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_events",
+            "description": "Fetches the past and upcoming high-importance macroeconomic events with expectations vs actuals.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    }
+]
+
+MACRO_SCHEMA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_events",
+            "description": "Fetches the past and upcoming high-importance macroeconomic events (Economic Calendar) to analyze rate expectations.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_global_news",
+            "description": "Fetches the 10 most recent global economic, geopolitical, and market news headlines.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_currency_and_gold_price",
+            "description": "Gets the live price and historical change of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin', 'ons-altin').",
             "parameters": {
                 "type": "object",
                 "properties": {"symbol": {"type": "string"}},

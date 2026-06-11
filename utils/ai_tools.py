@@ -180,22 +180,35 @@ def get_global_news(*args, **kwargs) -> str:
         return json.dumps({"error": str(e)})
 
 def get_macro_events(*args, **kwargs) -> str:
-    """Gets the upcoming/today's important macroeconomic events and the TCMB policy rate."""
-    from utils.data_loader import get_economic_calendar, get_real_policy_rate
+    """Gets past week and upcoming week high-importance macroeconomic events with expectations."""
+    from utils.data_loader import get_real_policy_rate
+    import borsapy as bp
+    from datetime import datetime, timedelta
     import json
+    import pandas as pd
+    
     try:
         rate = get_real_policy_rate()
-        cal_df = get_economic_calendar()
+        today = datetime.now()
+        start_dt = (today - timedelta(days=7)).strftime('%Y-%m-%d')
+        end_dt = (today + timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        cal = bp.EconomicCalendar()
+        cal_df = cal.events(start=start_dt, end=end_dt, importance='high')
+        
         events = []
         if cal_df is not None and not cal_df.empty:
-            # high importance events
-            high = cal_df[cal_df['Importance'] == 'high']
-            for _, row in high.iterrows():
-                events.append(f"{row['Time']} - {row['Country']}: {row['Event']}")
+            for _, row in cal_df.iterrows():
+                # Some events might have 'None' for actual/forecast, handle gracefully
+                actual = row['Actual'] if pd.notna(row['Actual']) else "?"
+                forecast = row['Forecast'] if pd.notna(row['Forecast']) else "?"
+                previous = row['Previous'] if pd.notna(row['Previous']) else "?"
+                events.append(f"[{row['Date']} {row['Time']}] {row['Country']} - {row['Event']} | Beklenti: {forecast}, Gerçekleşen: {actual}, Önceki: {previous}")
                 
         return json.dumps({
             "TCMB_Policy_Rate": rate if rate else "N/A",
-            "Important_Macro_Events_Today": events if events else "Bugün için yüksek önem dereceli kritik bir veri akışı bulunmuyor."
+            "Context_Window": f"{start_dt} to {end_dt}",
+            "Macro_Events": events if events else "Bu aralıkta yüksek önem dereceli kritik bir veri akışı bulunmuyor."
         })
     except Exception as e:
         return json.dumps({"error": str(e)})

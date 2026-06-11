@@ -134,3 +134,6 @@ def transfer_to_crypto_expert() -> str:
 
 def transfer_to_fund_expert() -> str:
     return json.dumps({"status": "Transferred to Fund Expert. Ajan değişti."})
+
+def transfer_to_macro_expert() -> str:
+    return json.dumps({"status": "Transferred to Macro Expert. Ajan değişti."})
