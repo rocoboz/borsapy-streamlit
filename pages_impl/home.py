@@ -1,47 +1,73 @@
 import streamlit as st
 from utils.ui import render_header, load_lottieurl, metric_card
-from utils.data_loader import get_ticker_info, get_fx_rate, get_crypto_price, get_index_info
+from utils.data_loader import get_ticker_info, get_fx_rate, get_crypto_price, get_index_info, get_market_update_time
 import plotly.graph_objects as go
 
 def app():
     # Animations
     lottie_chart = load_lottieurl("https://assets5.lottiefiles.com/packages/lf20_rw0uop.json")
     
+    # Fetch timestamp
+    update_time = get_market_update_time()
+    time_str = f"Son Güncelleme: {update_time}" if update_time else "Güncel Veri Bekleniyor..."
+
     # Header
-    st.markdown("""
+    st.markdown(f"""
     <div class="animate-fade-in" style="margin-bottom: 20px; text-align: center;">
         <h1 style="font-size: 3em; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
             Piyasa Kokpiti
         </h1>
         <p style="font-size: 1.1em; opacity: 0.8; max-width: 600px; margin: 0 auto;">
-            BorsaPY Pro'ya hoş geldiniz. Küresel ve yerel piyasaların anlık röntgeni.
+            BorsaPY Pro'ya hoş geldiniz. Küresel ve yerel piyasaların anlık röntgeni.<br>
+            <span style="font-size: 0.85em; color: #a0a5b9;">🕒 {time_str}</span>
         </p>
     </div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # 1. Quick Market Glance
-    m1, m2, m3, m4 = st.columns(4)
-    bist = get_index_info("XU100") 
+    # 1. Değerli Metaller
     usd_val, _ = get_fx_rate("USD")
-    gold_val, _ = get_fx_rate("gram-altin")
-    btc_val, _ = get_crypto_price("BTCTRY")
+    gold_gr, _ = get_fx_rate("gram-altin")
+    gold_ons_try, _ = get_fx_rate("ons-altin")
+    silver_gr, _ = get_fx_rate("gram-gumus")
+    silver_ons_usd, _ = get_fx_rate("XAG-USD")
     
+    # Ons Altın (USD) hesabı
+    gold_ons_usd = (gold_ons_try / usd_val) if (gold_ons_try and usd_val) else None
+
+    m1, m2, m3, m4 = st.columns(4)
     with m1:
-        metric_card("USD/TRY", f"{usd_val:.2f} ₺" if usd_val else "N/A", icon="💵")
+        metric_card("Gram Altın", f"{gold_gr:,.2f} ₺" if gold_gr else "N/A", icon="🥇")
     with m2:
-        metric_card("Gram Altın", f"{gold_val:.2f} ₺" if gold_val else "N/A", icon="🥇")
+        metric_card("Ons Altın", f"${gold_ons_usd:,.2f}" if gold_ons_usd else "N/A", icon="🥇")
     with m3:
-        metric_card("Bitcoin", f"{btc_val:,.0f} ₺" if btc_val else "N/A", icon="₿")
+        metric_card("Gram Gümüş", f"{silver_gr:,.2f} ₺" if silver_gr else "N/A", icon="🥈")
     with m4:
+        metric_card("Ons Gümüş", f"${silver_ons_usd:,.2f}" if silver_ons_usd else "N/A", icon="🥈")
+        
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 2. Genel Piyasa & Kripto
+    g1, g2, g3, g4 = st.columns(4)
+    bist = get_index_info("XU100") 
+    btc_usd, _ = get_crypto_price("BTCUSDT")
+    eth_usd, _ = get_crypto_price("ETHUSDT")
+    
+    with g1:
          if bist:
              val = bist.info.get('last', 0)
              chg = bist.info.get('change_percent', 0)
              metric_card("BIST 100", f"{val:,.0f}", f"%{chg:.2f}", icon="📈")
          else:
              metric_card("BIST 100", "N/A", icon="📈")
-             
+    with g2:
+        metric_card("USD/TRY", f"{usd_val:.4f} ₺" if usd_val else "N/A", icon="💵")
+    with g3:
+        metric_card("Bitcoin", f"${btc_usd:,.0f}" if btc_usd else "N/A", icon="₿")
+    with g4:
+        metric_card("Ethereum", f"${eth_usd:,.0f}" if eth_usd else "N/A", icon="🪙")
+
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Dashboard Grid
@@ -69,14 +95,15 @@ def app():
         st.markdown("<br>", unsafe_allow_html=True)
         
         # 🪙 Kripto Takibi
-        st.subheader("🪙 Popüler Kriptolar")
-        crypto_symbols = [("Ethereum", "ETHTRY"), ("Solana", "SOLTRY"), ("Ripple", "XRPTRY")]
+        st.subheader("🪙 Diğer Popüler Kriptolar")
+        crypto_symbols = [("Solana", "SOLUSDT"), ("Ripple", "XRPUSDT"), ("Avax", "AVAXUSDT")]
         ccols = st.columns(len(crypto_symbols))
         for idx, (name, sym) in enumerate(crypto_symbols):
             with ccols[idx]:
                 val, _ = get_crypto_price(sym)
                 if val:
-                    metric_card(name, f"{val:,.2f} ₺", icon=None)
+                    decimals = 4 if val < 2 else 2
+                    metric_card(name, f"${val:,.{decimals}f}", icon=None)
                 else:
                     metric_card(name, "N/A", icon=None)
 

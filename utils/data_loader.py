@@ -116,3 +116,15 @@ def get_economic_calendar():
     except:
         return None
 
+@st.cache_data(ttl=300)
+def get_market_update_time():
+    try:
+        import borsapy as bp
+        ts = bp.FX("USD").current.get("update_time")
+        if ts:
+            return ts.strftime("%d.%m.%Y %H:%M:%S")
+        return None
+    except:
+        return None
+
+
