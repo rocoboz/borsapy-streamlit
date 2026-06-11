@@ -26,6 +26,40 @@ def get_stock_financials(symbol: str) -> str:
         })
     except Exception as e: return json.dumps({"error": str(e)})
 
+def get_multiple_stock_financials(symbols: str) -> str:
+    """Gets P/E, P/B, ROE, and analyst targets for multiple BIST stocks (for peer comparison).
+    Pass a comma-separated string of symbols (e.g. 'ASELS, OTKAR, SDTTR').
+    """
+    import borsapy as bp
+    results = {}
+    symbol_list = [s.strip() for s in symbols.split(',') if s.strip()]
+    
+    for sym in symbol_list:
+        try:
+            ticker = bp.Ticker(sym)
+            info = ticker.info
+            targets = ticker.analyst_price_targets if hasattr(ticker, 'analyst_price_targets') else None
+            
+            usd_rate = 1.0
+            try:
+                usd_rate = float(bp.FX('USD').current['last'])
+            except: pass
+            
+            if isinstance(targets, dict) and "mean" in targets and targets["mean"]:
+                targets["mean"] = round(targets["mean"] / usd_rate, 2)
+            
+            symbol_data = {
+                "P/E_Ratio": info.get('trailingPE', 'N/A'),
+                "Price_to_Book": info.get('priceToBook', 'N/A'),
+                "ROE": info.get('returnOnEquity', 'N/A'),
+                "Analyst_Mean_Target_USD": targets.get("mean", "N/A") if isinstance(targets, dict) else "N/A"
+            }
+            results[sym] = symbol_data
+        except Exception as e:
+            results[sym] = {"error": str(e)}
+            
+    return json.dumps({"peer_comparison": results})
+
 def get_stock_technicals(symbol: str) -> str:
     try:
         ticker = bp.Ticker(symbol)

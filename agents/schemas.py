@@ -49,6 +49,18 @@ STOCK_SCHEMA = [
     {
         "type": "function",
         "function": {
+            "name": "get_multiple_stock_financials",
+            "description": "Gets P/E, P/B, ROE, and analyst targets for multiple BIST stocks. Use this to do PEER COMPARISON (e.g. comparing ASELS to OTKAR).",
+            "parameters": {
+                "type": "object",
+                "properties": {"symbols": {"type": "string", "description": "Comma-separated stock symbols (e.g. 'ASELS, OTKAR, SDTTR')"}},
+                "required": ["symbols"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_stock_technicals",
             "description": "Gets RSI, MACD, SMA50, SMA200, Supertrend for a BIST stock.",
             "parameters": {

@@ -1,7 +1,23 @@
 import streamlit as st
 from openai import OpenAI
 import json
+import os
 import re
+
+PROFILE_FILE = "user_profile.json"
+
+def load_profile():
+    if os.path.exists(PROFILE_FILE):
+        try:
+            with open(PROFILE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_profile(data):
+    with open(PROFILE_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 def app():
     st.markdown("""
@@ -78,7 +94,35 @@ def app():
         st.session_state[state_key] = ""
         st.rerun()
 
-    # 3. Chat Interface
+    st.sidebar.divider()
+
+    # 3. User Profile System
+    st.sidebar.markdown("### 👤 Yatırımcı Profilim")
+    st.sidebar.markdown("<small>Ajanlar analizlerini bu profile göre kişiselleştirir. Boş bırakılabilir.</small>", unsafe_allow_html=True)
+    
+    profile = load_profile()
+    
+    with st.sidebar.expander("Profili Düzenle", expanded=False):
+        p_age = st.number_input("Yaşınız", min_value=18, max_value=100, value=profile.get("age", 30))
+        p_risk = st.selectbox("Risk İştahınız", ["Düşük (Garantici)", "Orta (Dengeli)", "Yüksek (Agresif)"], 
+                              index=["Düşük (Garantici)", "Orta (Dengeli)", "Yüksek (Agresif)"].index(profile.get("risk", "Orta (Dengeli)")))
+        p_goal = st.selectbox("Yatırım Amacınız", ["Emeklilik Birikimi", "Orta Vade Büyüme", "Kısa Vade Vurgun / Al-Sat", "Temettü / Pasif Gelir"], 
+                              index=["Emeklilik Birikimi", "Orta Vade Büyüme", "Kısa Vade Vurgun / Al-Sat", "Temettü / Pasif Gelir"].index(profile.get("goal", "Orta Vade Büyüme")))
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Kaydet", use_container_width=True):
+                save_profile({"age": p_age, "risk": p_risk, "goal": p_goal})
+                st.toast("Profil başarıyla kaydedildi!", icon="✅")
+                st.rerun()
+        with col2:
+            if st.button("Sil", use_container_width=True):
+                if os.path.exists(PROFILE_FILE):
+                    os.remove(PROFILE_FILE)
+                st.toast("Profil silindi!", icon="🗑️")
+                st.rerun()
+
+    # 4. Chat Interface
     if "messages" not in st.session_state:
         st.session_state.messages = []
         
@@ -112,7 +156,7 @@ def app():
             from agents.prompts import ROUTER_PROMPT, STOCK_EXPERT_PROMPT, CRYPTO_EXPERT_PROMPT, FUND_EXPERT_PROMPT, MACRO_EXPERT_PROMPT
             from agents.schemas import ROUTER_SCHEMA, STOCK_SCHEMA, CRYPTO_SCHEMA, FUND_SCHEMA, MACRO_SCHEMA
             from agents.tools import (
-                get_stock_financials, get_stock_technicals, 
+                get_stock_financials, get_multiple_stock_financials, get_stock_technicals, 
                 get_crypto_technicals, get_crypto_momentum,
                 get_fund_performance, get_fund_allocation, get_fund_risk_metrics,
                 transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert
@@ -121,6 +165,7 @@ def app():
             
             ALL_TOOLS_MAP = {
                 "get_stock_financials": get_stock_financials,
+                "get_multiple_stock_financials": get_multiple_stock_financials,
                 "get_stock_technicals": get_stock_technicals,
                 "get_latest_news": get_latest_news,
                 "get_global_news": get_global_news,
@@ -161,7 +206,15 @@ def app():
                         "macro": {"prompt": MACRO_EXPERT_PROMPT, "schema": MACRO_SCHEMA}
                     }
                     curr_cfg = agent_config[st.session_state.current_agent]
-                    api_messages[0] = {"role": "system", "content": curr_cfg["prompt"]}
+                    
+                    # Inject User Profile into Prompt
+                    system_prompt = curr_cfg["prompt"]
+                    profile_data = load_profile()
+                    if profile_data:
+                        profile_str = f"\n\n🚨 DİKKAT! KULLANICI PROFİLİ 🚨\n- Yaş: {profile_data.get('age')}\n- Risk İştahı: {profile_data.get('risk')}\n- Yatırım Amacı: {profile_data.get('goal')}\nLÜTFEN TÜM ANALİZLERİNİ VE GÜVEN SKORUNU BU KULLANICI PROFİLİNE (RİSK İŞTAHINA VE AMACINA) GÖRE KİŞİSELLEŞTİR!"
+                        system_prompt += profile_str
+                        
+                    api_messages[0] = {"role": "system", "content": system_prompt}
                     
                     response = client.chat.completions.create(
                         model=model,
