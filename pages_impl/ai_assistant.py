@@ -129,6 +129,10 @@ def app():
         st.session_state[state_key] = ""
         st.rerun()
 
+    if st.sidebar.button("🧹 Sohbet Geçmişini Temizle", key="clear_chat", help="Tüm sohbet geçmişini ve ajan bağlamını sıfırlar."):
+        st.session_state.messages = []
+        st.rerun()
+
     st.sidebar.divider()
 
     # 3. User Profile System
