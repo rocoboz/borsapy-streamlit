@@ -108,37 +108,40 @@ def app():
             st.markdown(prompt)
 
         # Agent Loop
-        with st.spinner("Süper Ajan piyasa verilerini analiz ediyor..."):
-            from utils.ai_tools import AI_TOOLS_SCHEMA, AI_TOOLS_MAP
+        with st.spinner("Swarm Orkestratörü piyasayı analiz ediyor..."):
+            from agents.prompts import ROUTER_PROMPT, STOCK_EXPERT_PROMPT, CRYPTO_EXPERT_PROMPT, FUND_EXPERT_PROMPT
+            from agents.schemas import ROUTER_SCHEMA, STOCK_SCHEMA, CRYPTO_SCHEMA, FUND_SCHEMA
+            from agents.tools import (
+                get_stock_financials, get_stock_technicals, 
+                get_crypto_technicals, get_crypto_momentum,
+                get_fund_performance, get_fund_allocation, get_fund_risk_metrics,
+                transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert
+            )
+            from utils.ai_tools import get_latest_news, get_global_news, get_macro_events
             
-            # Build API messages for the current run
-            DECISION_ENGINE_PROMPT = """Sen profesyonel bir Borsa ve Finans Hedge Fon Yöneticisisin. Sıradan bir asistan gibi davranma. 
-ŞU KURALLARA KESİNLİKLE UYACAKSIN:
-1) Kullanıcı senden *spesifik bir hisse veya fon analizi* istediğinde, metin cevabı yazmadan ÖNCE MUTLAKA şu 6 aracı çağırıp verileri topla: get_live_price, get_financial_metrics, get_technical_analysis, get_latest_news, get_global_news, get_macro_events.
-2) Kullanıcı sadece *genel piyasa durumu* sorarsa `get_global_news` ve `get_macro_events` kullan.
-3) FİYAT > HABER prensibini unutma. Fiyat aksiyonunu (momentum, % değişim) mutlaka en başa koy ve diğer her şeyi buna göre yorumla.
-4) SİNYAL AĞIRLIKLANDIRMASI (Weighting Engine): Elde ettiğin her verinin önem derecesini belirle ve analizinde bunu açıkça göster. (Örn: TCMB faizi %40 etki, Şirket Haberi %20 etki).
-5) MAKRO/MİKRO SENTEZİ: Makro (Küresel), Yerel (TCMB) ve Mikro (Şirket) dinamiklerini birbiriyle harmanla.
-6) BİLMİYORUM DEMEK ERDEMDİR: Çektiğin veriler eksikse (örn: F/K yoksa veya araç hata verirse) asla uydurma. Eksik olanı açıkça söyle ve Güven Skorunu düşür.
-7) Çıktını KESİNLİKLE aşağıdaki sabit MARKDOWN şablonunda vereceksin:
+            ALL_TOOLS_MAP = {
+                "get_stock_financials": get_stock_financials,
+                "get_stock_technicals": get_stock_technicals,
+                "get_latest_news": get_latest_news,
+                "get_global_news": get_global_news,
+                "get_macro_events": get_macro_events,
+                "get_crypto_technicals": get_crypto_technicals,
+                "get_crypto_momentum": get_crypto_momentum,
+                "get_fund_performance": get_fund_performance,
+                "get_fund_allocation": get_fund_allocation,
+                "get_fund_risk_metrics": get_fund_risk_metrics,
+                "transfer_to_stock_expert": transfer_to_stock_expert,
+                "transfer_to_crypto_expert": transfer_to_crypto_expert,
+                "transfer_to_fund_expert": transfer_to_fund_expert
+            }
 
-📊 **ANA SONUÇ:** (Çok kısa ve net yargı)
-
-⚖️ **AĞIRLIKLI NEDENLER:** 
-- En güçlü sinyaller ve % etkileri (Sinyal vs Gürültü ayrımı yap)
-
-⚠️ **RİSKLER & EKSİKLİKLER:** 
-- Beklenti dışı senaryolar ve araçlardan çekilemeyen/eksik olan veriler
-
-🔮 **ZAMAN UFUKLU SENARYOLAR:** 
-- Kısa Vade (1-5 gün): ...
-- Orta Vade (1-3 ay): ...
-
-🎯 **GÜVEN SKORU:** (Eksik veya çelişkili verilere dayanarak analize olan güvenin, örn: %75)
-"""
-            api_messages = [{"role": "system", "content": DECISION_ENGINE_PROMPT}]
+            if "current_agent" not in st.session_state:
+                st.session_state.current_agent = "router"
             
-            # Add conversation history
+            # Reset to router for each new message to ensure proper routing
+            st.session_state.current_agent = "router"
+
+            api_messages = [{"role": "system", "content": ""}] # Placeholder for system prompt
             for m in st.session_state.messages:
                 api_messages.append(m)
 
@@ -147,10 +150,20 @@ def app():
             
             while tool_call_count < max_tool_calls:
                 try:
+                    # Dynamically set agent prompt and tools
+                    agent_config = {
+                        "router": {"prompt": ROUTER_PROMPT, "schema": ROUTER_SCHEMA},
+                        "stock": {"prompt": STOCK_EXPERT_PROMPT, "schema": STOCK_SCHEMA},
+                        "crypto": {"prompt": CRYPTO_EXPERT_PROMPT, "schema": CRYPTO_SCHEMA},
+                        "fund": {"prompt": FUND_EXPERT_PROMPT, "schema": FUND_SCHEMA}
+                    }
+                    curr_cfg = agent_config[st.session_state.current_agent]
+                    api_messages[0] = {"role": "system", "content": curr_cfg["prompt"]}
+                    
                     response = client.chat.completions.create(
                         model=model,
                         messages=api_messages,
-                        tools=AI_TOOLS_SCHEMA,
+                        tools=curr_cfg["schema"],
                         tool_choice="auto",
                         max_tokens=2500
                     )
@@ -164,15 +177,28 @@ def app():
                         
                         for tool_call in response_message.tool_calls:
                             function_name = tool_call.function.name
-                            function_to_call = AI_TOOLS_MAP.get(function_name)
+                            function_to_call = ALL_TOOLS_MAP.get(function_name)
                             
-                            st.toast(f"Ajan çalıştırıyor: {function_name}()", icon="⚙️")
+                            st.toast(f"{st.session_state.current_agent.upper()} Ajanı çalışıyor: {function_name}()", icon="⚙️")
                             
+                            # Handle dynamic agent transfers
+                            if function_name == "transfer_to_stock_expert":
+                                st.session_state.current_agent = "stock"
+                                st.toast("Ajan Değiştirildi: Hisse Uzmanı devrede!", icon="🏢")
+                            elif function_name == "transfer_to_crypto_expert":
+                                st.session_state.current_agent = "crypto"
+                                st.toast("Ajan Değiştirildi: Kripto Uzmanı devrede!", icon="🪙")
+                            elif function_name == "transfer_to_fund_expert":
+                                st.session_state.current_agent = "fund"
+                                st.toast("Ajan Değiştirildi: Fon Uzmanı devrede!", icon="📊")
+                                
                             if function_to_call:
                                 function_args = json.loads(tool_call.function.arguments)
-                                function_response = function_to_call(
-                                    symbol=function_args.get("symbol")
-                                )
+                                # Only pass symbol if the tool expects it
+                                if "symbol" in function_args:
+                                    function_response = function_to_call(symbol=function_args.get("symbol"))
+                                else:
+                                    function_response = function_to_call()
                                 
                                 tool_msg = {
                                     "tool_call_id": tool_call.id,
