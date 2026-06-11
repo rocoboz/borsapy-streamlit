@@ -189,8 +189,42 @@ def app():
             st.session_state.current_agent = "router"
 
             api_messages = [{"role": "system", "content": ""}] # Placeholder for system prompt
-            for m in st.session_state.messages:
-                api_messages.append(m)
+            
+            # --- SMART CONTEXT PRUNER PIPELINE ---
+            # Find the index of the latest user message
+            last_user_idx = -1
+            for i, m in enumerate(st.session_state.messages):
+                r = m.get("role") if isinstance(m, dict) else getattr(m, "role", "")
+                if r == "user":
+                    last_user_idx = i
+                    
+            for i, m in enumerate(st.session_state.messages):
+                is_dict = isinstance(m, dict)
+                role = m.get("role") if is_dict else getattr(m, "role", "")
+                content = m.get("content") if is_dict else getattr(m, "content", None)
+                tool_calls = m.get("tool_calls") if is_dict else getattr(m, "tool_calls", None)
+                
+                if i >= last_user_idx:
+                    # Current turn: Keep everything exactly as is for the active tool loop
+                    api_messages.append(m)
+                else:
+                    # Past turns (History pruning)
+                    if role == "tool":
+                        continue # Drop raw JSON tool responses to save tokens
+                    
+                    if role == "assistant":
+                        if tool_calls and not content:
+                            continue # Drop purely functional 'I am calling a tool' messages
+                        
+                        if is_dict:
+                            # Strip tool_calls to prevent API validation errors
+                            clean_m = {k: v for k, v in m.items() if k != "tool_calls"}
+                            api_messages.append(clean_m)
+                        else:
+                            api_messages.append({"role": "assistant", "content": content})
+                    else:
+                        api_messages.append(m)
+            # ------------------------------------
 
             max_tool_calls = 10
             tool_call_count = 0
