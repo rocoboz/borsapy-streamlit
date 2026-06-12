@@ -367,7 +367,6 @@ def app():
                             elif function_name == "transfer_to_warrant_expert":
                                 st.session_state.current_agent = "warrant"
                                 st.toast("Ajan Değiştirildi: Varant & Türev Uzmanı devrede!", icon="🎰")
-                                
                             if function_to_call:
                                 try:
                                     function_args = json.loads(tool_call.function.arguments)
@@ -383,7 +382,9 @@ def app():
                                     "name": function_name,
                                     "content": function_response,
                                 }
-                                api_messages.append(tool_msg)
+                                # Sadece transfer fonksiyonu DEĞİLSE api_messages'a ekle (DeepSeek/Llama uyumluluğu için)
+                                if not function_name.startswith("transfer_to_"):
+                                    api_messages.append(tool_msg)
                                 st.session_state.messages.append(tool_msg)
                             else:
                                 tool_msg = {
@@ -392,8 +393,16 @@ def app():
                                     "name": function_name,
                                     "content": json.dumps({"error": "Function not found"}),
                                 }
-                                api_messages.append(tool_msg)
+                                if not function_name.startswith("transfer_to_"):
+                                    api_messages.append(tool_msg)
                                 st.session_state.messages.append(tool_msg)
+                        
+                        # Eğer transfer gerçekleştiyse, son eklenen asistan transfer istek mesajını (tool_calls barındıran)
+                        # api_messages listesinden kaldırıyoruz ki bir sonraki turda yeni ajanın şemasıyla çelişmesin.
+                        is_transfer = any(tc.function.name.startswith("transfer_to_") for tc in response_message.tool_calls)
+                        if is_transfer and api_messages and api_messages[-1] == response_message:
+                            api_messages.pop()
+                            
                         tool_call_count += 1
                     else:
                         ai_reply = response_message.content
