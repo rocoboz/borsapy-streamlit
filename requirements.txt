@@ -1,0 +1,10 @@
+borsapy>=0.10.0
+streamlit
+plotly
+pandas
+streamlit-lottie
+streamlit-option-menu
+requests
+streamlit-searchbox
+
+openai

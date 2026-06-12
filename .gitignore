@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Local API key files
+.openrouter_key
+.groq_key
+.deepseek_key
+.gemini_key
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Kullanıcı verisi - Push edilmemeli
+user_profile.json
+*.user_data.json
+
+# Test ve geçici dosyalar
+scratch/
