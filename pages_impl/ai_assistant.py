@@ -180,8 +180,38 @@ def app():
                     with st.chat_message(role):
                         st.markdown(msg.content)
 
+    # 3.5. Quick Suggestions (Hazır Promptlar)
+    st.markdown("##### 💡 Örnek Sorgular (Hızlı Başlat)")
+    
+    # Kategori bazlı hazır örnekler
+    suggestions = [
+        {"icon": "🏢", "label": "Hisse Önerisi", "prompt": "BIST 100 endeksinde F/K oranı 15'ten küçük ve kârlılığı yüksek alınabilir hisseleri bul"},
+        {"icon": "📈", "label": "THYAO Analiz", "prompt": "THYAO hissesinin teknik göstergeleri (RSI, MACD, SMA) ve en son KAP haberleri ne durumda?"},
+        {"icon": "🪙", "label": "Kripto Durumu", "prompt": "Bitcoin on-chain durumunu ve piyasa korku/açgözlülük endeksini analiz et"},
+        {"icon": "📊", "label": "En İyi Fonlar", "prompt": "Son 1 yılda en yüksek getiri sağlayan TEFAS yatırım fonlarını listele"},
+        {"icon": "🌍", "label": "Makro Görünüm", "prompt": "Küresel piyasalarda (S&P 500, VIX, DXY), tahvillerde ve petrol fiyatlarında son durum nedir?"},
+        {"icon": "🎰", "label": "ASIAA Varantı", "prompt": "ASIAA varantının dayanak varlığı (ASELS) için teknik trende göre Call/Put varant senaryolarını anlat"}
+    ]
+    
+    # 3'lü gridler halinde butonları çizdir
+    cols_s = st.columns(3)
+    clicked_prompt = None
+    for idx, sug in enumerate(suggestions):
+        col = cols_s[idx % 3]
+        if col.button(f"{sug['icon']} {sug['label']}", key=f"sug_{idx}", use_container_width=True):
+            clicked_prompt = sug["prompt"]
+            
+    # Eğer hazır butona tıklandıysa prompt'u ata veya chat input'u oku
+    prompt = None
+    if clicked_prompt:
+        prompt = clicked_prompt
+    
     # Chat Input
-    if prompt := st.chat_input("Hisse, fon veya makro veriler hakkında soru sorun..."):
+    chat_prompt = st.chat_input("Hisse, fon veya makro veriler hakkında soru sorun...")
+    if chat_prompt:
+        prompt = chat_prompt
+
+    if prompt:
         # Add user message to chat UI
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
