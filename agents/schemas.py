@@ -111,8 +111,16 @@ STOCK_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_global_news",
-            "description": "Fetches the 10 most recent global economic and market news headlines.",
-            "parameters": {"type": "object", "properties": {}}
+            "description": "TRT, Bloomberg HT, Investing.com, MarketWatch, CNBC ve Yahoo Finance gibi birden fazla kaynaktan guncel ekonomi ve piyasa haberlerini toplar. category ile konu filtreleyebilirsin: 'all' (varsayilan), 'crypto' (kripto), 'commodity' (emtia/altin), 'macro' (genel makro), 'turkey' (yerel Turkiye).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Haber kategorisi: 'all' | 'crypto' | 'commodity' | 'macro' | 'turkey'. Varsayilan: 'all'"
+                    }
+                }
+            }
         }
     },
     {
@@ -154,8 +162,16 @@ CRYPTO_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_global_news",
-            "description": "Fetches global economic news. Important for crypto (e.g. FED news).",
-            "parameters": {"type": "object", "properties": {}}
+            "description": "Kripto için özellikle 'crypto' kategorisiyle çağır. Investing Kripto, MarketWatch, CNBC, Yahoo Finance kaynaklarindan haber çeker. category: 'crypto' | 'macro' | 'all'",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Haber kategorisi: 'crypto' | 'macro' | 'all'. Kripto sorularinda 'crypto' kullan."
+                    }
+                }
+            }
         }
     },
     {
@@ -224,8 +240,16 @@ FUND_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_global_news",
-            "description": "Fetches the 10 most recent global economic and market news headlines.",
-            "parameters": {"type": "object", "properties": {}}
+            "description": "TRT, Bloomberg HT, Investing.com, MarketWatch, CNBC ve Yahoo Finance gibi birden fazla kaynaktan guncel ekonomi ve piyasa haberlerini toplar. category ile konu filtreleyebilirsin: 'all' (varsayilan), 'crypto' (kripto), 'commodity' (emtia/altin), 'macro' (genel makro), 'turkey' (yerel Turkiye).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Haber kategorisi: 'all' | 'crypto' | 'commodity' | 'macro' | 'turkey'. Varsayilan: 'all'"
+                    }
+                }
+            }
         }
     },
     {
@@ -251,8 +275,16 @@ MACRO_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_global_news",
-            "description": "Fetches the 10 most recent global economic, geopolitical, and market news headlines.",
-            "parameters": {"type": "object", "properties": {}}
+            "description": "TRT, Bloomberg HT, Investing.com, MarketWatch, CNBC ve Yahoo Finance gibi kaynaklardan haber çeker. Emtia/Altin analizlerinde 'commodity', genel makroda 'macro', Türkiye odaklı sorularda 'turkey' kategorisi kullan.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Haber kategorisi: 'all' | 'commodity' | 'macro' | 'turkey'. Emtia/Altin sorularinda 'commodity' kullan."
+                    }
+                }
+            }
         }
     },
     {

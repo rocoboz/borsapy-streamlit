@@ -151,33 +151,75 @@ def get_latest_news(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
-def get_global_news(*args, **kwargs) -> str:
-    """Gets the latest general economic and global news headlines to understand market sentiment."""
+def get_global_news(category: str = 'all') -> str:
+    """
+    Birden fazla kaynaktan ekonomi ve piyasa haberlerini toplar.
+    category: 'all' | 'crypto' | 'commodity' | 'macro' | 'turkey'
+    Kategoriye göre ilgili kaynaklar önceliklendirilir.
+    """
     import requests
     import xml.etree.ElementTree as ET
     import json
-    
-    url = "https://www.trthaber.com/ekonomi_articles.rss"
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    # Kaynak tanımları: (isim, url, etiketler)
+    ALL_SOURCES = [
+        ("TRT Haber",        "https://www.trthaber.com/ekonomi_articles.rss",         ["turkey", "macro", "all"]),
+        ("Bloomberg HT",     "https://www.bloomberght.com/rss",                        ["turkey", "macro", "all"]),
+        ("Dunya Gazetesi",   "https://www.dunya.com/rss",                              ["turkey", "all"]),
+        ("Investing Genel",  "https://www.investing.com/rss/news.rss",                 ["macro", "all"]),
+        ("Investing Emtia",  "https://www.investing.com/rss/news_14.rss",              ["commodity", "macro", "all"]),
+        ("Investing Kripto", "https://www.investing.com/rss/news_301.rss",             ["crypto", "all"]),
+        ("MarketWatch",      "https://feeds.content.dowjones.io/public/rss/mw_topstories", ["macro", "all"]),
+        ("CNBC Markets",     "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19836768", ["macro", "all"]),
+        ("Yahoo Finance",    "https://finance.yahoo.com/news/rssindex",                ["macro", "all"]),
+    ]
+
+    # Kategori filtresi
+    cat = category.lower().strip()
+    sources = [(n, u) for n, u, tags in ALL_SOURCES if cat in tags]
+
+    # Maksimum kaynak sayısı ve her kaynaktan alınacak haber sayısı
+    MAX_SOURCES = 5 if cat == 'all' else 4
+    PER_SOURCE = 3 if cat == 'all' else 5
+    sources = sources[:MAX_SOURCES]
+
     headers = {'User-Agent': 'Mozilla/5.0'}
-    
-    try:
-        res = requests.get(url, headers=headers)
-        res.encoding = 'utf-8'
-        if res.status_code == 200:
-            root = ET.fromstring(res.text)
+
+    def fetch_source(name, url):
+        try:
+            r = requests.get(url, headers=headers, timeout=5)
+            if r.status_code != 200:
+                return []
+            root = ET.fromstring(r.text)
             items = []
-            for item in root.findall('.//item')[:10]:
-                title = item.find('title').text
-                pub_date = item.find('pubDate').text if item.find('pubDate') is not None else "Recent"
-                items.append(f"- {pub_date}: {title}")
-            return json.dumps({
-                "source": "Global & Economic News",
-                "latest_news": items
-            })
-        else:
-            return json.dumps({"error": f"HTTP Error {res.status_code} fetching global news."})
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+            for item in root.findall('.//item')[:PER_SOURCE]:
+                title_el = item.find('title')
+                date_el = item.find('pubDate')
+                title = title_el.text.strip() if title_el is not None and title_el.text else None
+                date = date_el.text.strip() if date_el is not None and date_el.text else "Son"
+                if title:
+                    items.append(f"[{name}] {date[:16]}: {title}")
+            return items
+        except Exception:
+            return []
+
+    all_headlines = []
+    with ThreadPoolExecutor(max_workers=len(sources)) as executor:
+        futures = {executor.submit(fetch_source, n, u): n for n, u in sources}
+        for future in as_completed(futures):
+            all_headlines.extend(future.result())
+
+    if not all_headlines:
+        return json.dumps({"error": "Hiçbir haber kaynağına ulaşılamadı."})
+
+    return json.dumps({
+        "category": category,
+        "sources_fetched": len(sources),
+        "total_headlines": len(all_headlines),
+        "news": all_headlines
+    })
+
 
 def get_macro_events(*args, **kwargs) -> str:
     """Gets past week and upcoming week high-importance macroeconomic events with expectations."""
