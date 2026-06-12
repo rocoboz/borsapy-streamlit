@@ -195,7 +195,8 @@ def app():
                 get_stock_financials, get_multiple_stock_financials, get_stock_technicals, screen_bist_stocks,
                 get_crypto_technicals, get_crypto_momentum,
                 get_fund_performance, get_fund_allocation, get_fund_risk_metrics, screen_top_funds,
-                get_tcmb_rates, transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert, transfer_to_warrant_expert
+                get_tcmb_rates, get_macro_overview, get_fear_greed_index, get_brent_oil_price, get_turkish_bond_yields,
+                transfer_to_stock_expert, transfer_to_crypto_expert, transfer_to_fund_expert, transfer_to_macro_expert, transfer_to_warrant_expert
             )
             from utils.ai_tools import get_latest_news, get_global_news, get_macro_events, get_currency_and_gold_price
             
@@ -215,6 +216,10 @@ def app():
                 "screen_top_funds": screen_top_funds,
                 "get_currency_and_gold_price": get_currency_and_gold_price,
                 "get_tcmb_rates": get_tcmb_rates,
+                "get_macro_overview": get_macro_overview,
+                "get_fear_greed_index": get_fear_greed_index,
+                "get_brent_oil_price": get_brent_oil_price,
+                "get_turkish_bond_yields": get_turkish_bond_yields,
                 "transfer_to_stock_expert": transfer_to_stock_expert,
                 "transfer_to_crypto_expert": transfer_to_crypto_expert,
                 "transfer_to_fund_expert": transfer_to_fund_expert,

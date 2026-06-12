@@ -253,6 +253,78 @@ def get_tcmb_rates() -> str:
     except Exception as e:
         return json.dumps({"error": f"TCMB execution failed: {str(e)}"})
 
+# --- NEW EXTERNAL & ADVANCED MACRO TOOLS ---
+def get_macro_overview() -> str:
+    """Gets global markets indices overview (S&P 500, Nasdaq, VIX, DXY, DAX, FTSE 100, Nikkei 225) using global_markets provider."""
+    try:
+        from providers.global_markets import get_market_overview
+        data = get_market_overview()
+        return json.dumps({"global_markets": data})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+def get_fear_greed_index() -> str:
+    """Gets the current Crypto Fear & Greed Index (alternative.me API) which serves as sentiment indicator for crypto markets."""
+    try:
+        from providers.fear_greed import get_current
+        data = get_current()
+        if data:
+            return json.dumps({"fear_and_greed": data})
+        return json.dumps({"error": "Failed to fetch Fear & Greed Index."})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+def get_brent_oil_price() -> str:
+    """Gets the current Brent Crude Oil price and its historical 1-month and 3-month performance using borsapy.FX."""
+    try:
+        import borsapy as bp
+        fx = bp.FX("BRENT")
+        cur = fx.current
+        val = cur.get('last') if isinstance(cur, dict) else cur
+        if not val:
+            return json.dumps({"error": "Brent oil price not found."})
+        
+        df_3m = fx.history(period="3mo")
+        change_1m = "N/A"
+        change_3m = "N/A"
+        if not df_3m.empty and len(df_3m) >= 20:
+            try:
+                past_1m_price = df_3m['Close'].iloc[-21] if len(df_3m) >= 21 else df_3m['Close'].iloc[0]
+                change_1m = round(((val - past_1m_price) / past_1m_price) * 100, 2)
+                past_3m_price = df_3m['Close'].iloc[0]
+                change_3m = round(((val - past_3m_price) / past_3m_price) * 100, 2)
+            except:
+                pass
+        return json.dumps({
+            "symbol": "BRENT",
+            "price_USD": val,
+            "1_month_change_percent": change_1m,
+            "3_month_change_percent": change_3m
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+def get_turkish_bond_yields() -> str:
+    """Gets Turkish government bond yields (2Y, 5Y, 10Y) using borsapy.bonds() and Eurobonds list using borsapy.eurobonds()."""
+    try:
+        import borsapy as bp
+        bonds_df = bp.bonds()
+        eurobonds_df = bp.eurobonds()
+        
+        bonds_list = bonds_df.to_dict(orient='records') if bonds_df is not None and not bonds_df.empty else []
+        # Return top 8 eurobonds sorted by yield to keep it compact
+        eurobonds_list = []
+        if eurobonds_df is not None and not eurobonds_df.empty:
+            eurobonds_sorted = eurobonds_df.sort_values(by='ask_yield', ascending=False).head(8)
+            eurobonds_list = eurobonds_sorted.to_dict(orient='records')
+            
+        return json.dumps({
+            "tr_bonds": bonds_list,
+            "tr_eurobonds_top_yield": eurobonds_list
+        }, default=str)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
 # --- ROUTER TRANSFER TOOLS (Mock tools that don't do much but signal intent) ---
 def transfer_to_stock_expert() -> str:
     return json.dumps({"status": "Transferred to Stock Expert. Ajan değişti."})

@@ -181,6 +181,22 @@ CRYPTO_SCHEMA = [
             "description": "Fetches the past and upcoming high-importance macroeconomic events with expectations vs actuals.",
             "parameters": {"type": "object", "properties": {}}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_fear_greed_index",
+            "description": "Gets the current Crypto Fear & Greed Index to understand market sentiment and investor fear/greed levels.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_overview",
+            "description": "Gets global market indices overview (S&P 500, Nasdaq, VIX, DXY, DAX, FTSE 100, Nikkei 225) to check global risk appetite.",
+            "parameters": {"type": "object", "properties": {}}
+        }
     }
 ]
 
@@ -306,6 +322,38 @@ MACRO_SCHEMA = [
             "description": "Gets Turkey's current Central Bank (TCMB) interest rates (Policy Rate, Overnight Rate). Use this to analyze Turkey's monetary policy.",
             "parameters": {"type": "object", "properties": {}}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_overview",
+            "description": "Gets global market indices overview (S&P 500, Nasdaq, VIX, DXY, DAX, FTSE 100, Nikkei 225) to check global market health.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_fear_greed_index",
+            "description": "Gets the current Crypto Fear & Greed Index to understand global retail/sentiment indicators.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_brent_oil_price",
+            "description": "Gets the live Brent Crude Oil price and its 1-month and 3-month performance.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_turkish_bond_yields",
+            "description": "Gets Turkish government bond yields (2Y, 5Y, 10Y) and high-yielding Eurobonds.",
+            "parameters": {"type": "object", "properties": {}}
+        }
     }
 ]
 
@@ -351,6 +399,22 @@ WARRANT_SCHEMA = [
         "function": {
             "name": "get_macro_events",
             "description": "Fetches high-importance macroeconomic events that could affect the underlying asset.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_brent_oil_price",
+            "description": "Gets the live Brent Crude Oil price and performance. Use this when the warrant's underlying is Brent/oil.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_macro_overview",
+            "description": "Gets global market indices overview (S&P 500, Nasdaq, VIX, DXY, DAX, FTSE 100, Nikkei 225) to check global trend direction.",
             "parameters": {"type": "object", "properties": {}}
         }
     }
