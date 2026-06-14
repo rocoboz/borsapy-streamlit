@@ -98,13 +98,35 @@ def get_technical_analysis(symbol: str) -> str:
 def get_currency_and_gold_price(symbol: str) -> str:
     """Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin') and its 1-month and 3-month change."""
     import borsapy as bp
+    import yfinance as yf
     try:
+        symbol = symbol.upper()
+        if symbol in ["XAU", "XAU/USD", "ONS", "GOLD"]:
+            # Fallback to yfinance for Gold (XAUUSD=X) since bp.FX may not support it
+            ticker = yf.Ticker("GC=F")
+            hist = ticker.history(period="3mo")
+            if hist.empty:
+                return json.dumps({"error": "Gold data not found."})
+            
+            val = round(hist['Close'].iloc[-1], 2)
+            past_1m_price = hist['Close'].iloc[-21] if len(hist) >= 21 else hist['Close'].iloc[0]
+            change_1m = round(((val - past_1m_price) / past_1m_price) * 100, 2)
+            past_3m_price = hist['Close'].iloc[0]
+            change_3m = round(((val - past_3m_price) / past_3m_price) * 100, 2)
+            
+            return json.dumps({
+                "symbol": "XAU/USD",
+                "price_USD": val,
+                "1_month_change_percent": change_1m,
+                "3_month_change_percent": change_3m
+            })
+            
         fx = bp.FX(symbol)
         cur = fx.current
         val = cur.get('last') if isinstance(cur, dict) else cur
         
         if not val:
-            return json.dumps({"error": f"Symbol {symbol} not found. Try 'USD', 'EUR', 'gram-altin' or 'ons-altin'."})
+            return json.dumps({"error": f"Symbol {symbol} not found. Try 'USD', 'EUR', 'gram-altin'."})
             
         # Calculate history
         df_3m = fx.history(period="3mo")

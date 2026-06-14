@@ -15,10 +15,14 @@ def get_stock_financials(symbol: str) -> str:
                 if k in targets and targets[k]:
                     targets[k] = round(targets[k] / usd_rate, 2)
                     
+        pe_val = info.get('trailingPE')
+        if pe_val is None:
+            pe_val = info.get('forwardPE', 'N/A')
+            
         return json.dumps({
             "symbol": symbol,
             "Currency": "USD",
-            "PE_Ratio": info.get('trailingPE', 'N/A'),
+            "PE_Ratio": pe_val,
             "Price_to_Book": info.get('priceToBook', 'N/A'),
             "ROE": info.get('returnOnEquity', 'N/A'),
             "Analyst_Price_Targets_USD": targets,
@@ -68,8 +72,12 @@ def screen_bist_stocks(index: str = 'BIST100', max_pe: float = None, min_roe: fl
     """
     import borsapy as bp
     try:
+        # Map user-friendly AI index names to borsapy Native Screener formats
+        idx_map = {"BIST100": "XU100", "BIST30": "XU030", "BIST_ALL": "Tümü"}
+        mapped_index = idx_map.get(index.upper(), index)
+        
         screener = bp.Screener()
-        screener.set_index(index)
+        screener.set_index(mapped_index)
         if max_pe is not None:
             screener.add_filter('pe', max=float(max_pe))
         if min_roe is not None:
@@ -105,15 +113,11 @@ def screen_top_funds(period: str = '1y', fund_type: str = 'YAT', top_n: int = 8,
         }
         sort_col = col_map.get(period, 'return_1y')
         
-        kwargs = {"limit": 500, "fund_type": fund_type}
-        if min_return_1m is not None:
-            kwargs["min_return_1m"] = min_return_1m
-        if min_return_1y is not None:
-            kwargs["min_return_1y"] = min_return_1y
-            
-        df = bp.screen_funds(**kwargs)
+        # Native borsapy screener (limit 1500 to catch all and sort)
+        df = bp.screen_funds(limit=1500, fund_type=fund_type)
+        
         if df is None or df.empty:
-            return json.dumps({"error": "Fon verisi alınamadı."})
+            return json.dumps({"error": "TEFAS fon verisine ulaşılamadı. Sunucu veya ağ hatası."})
         
         df = df[df[sort_col].notna()]
         df_top = df.sort_values(by=sort_col, ascending=False).head(top_n)
