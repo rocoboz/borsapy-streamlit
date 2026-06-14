@@ -446,6 +446,7 @@ def app():
                         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
                         break
                 except Exception as e:
+                    status_container.update(label="API Bağlantı Hatası!", state="error", expanded=True)
                     err_str = str(e)
                     if "401" in err_str or "Unauthorized" in err_str or "api_key" in err_str.lower():
                         st.error("🔒 **Geçersiz API Anahtarı (401):** Girdiğiniz anahtar hatalı veya süresi dolmuş. Lütfen anahtarı kontrol edip 'Bağlantıyı Kes' ile tekrar giriş yapın.")
