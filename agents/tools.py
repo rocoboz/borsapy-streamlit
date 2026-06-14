@@ -1,11 +1,36 @@
 import json
+import math
+
 import borsapy as bp
 from utils.data_loader import get_ticker_info
+
+
+def _json_sanitize(value):
+    if isinstance(value, dict):
+        return {str(k): _json_sanitize(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_sanitize(v) for v in value]
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+    if hasattr(value, "item"):
+        return _json_sanitize(value.item())
+    return value
+
+
+def _json_default(value):
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return str(value)
+
+
+def _json_dumps(payload) -> str:
+    return json.dumps(_json_sanitize(payload), default=_json_default, allow_nan=False, ensure_ascii=False)
+
 
 # --- STOCK TOOLS (Similar to old utils/ai_tools.py) ---
 def get_stock_financials(symbol: str) -> str:
     ticker = get_ticker_info(symbol)
-    if not ticker: return json.dumps({"error": f"Symbol {symbol} not found."})
+    if not ticker: return _json_dumps({"error": f"Symbol {symbol} not found."})
     try:
         usd_rate = float(bp.FX('USD').current['last'])
         info = ticker.info
@@ -19,7 +44,7 @@ def get_stock_financials(symbol: str) -> str:
         if pe_val is None:
             pe_val = info.get('forwardPE', 'N/A')
             
-        return json.dumps({
+        return _json_dumps({
             "symbol": symbol,
             "Currency": "USD",
             "PE_Ratio": pe_val,
@@ -28,7 +53,7 @@ def get_stock_financials(symbol: str) -> str:
             "Analyst_Price_Targets_USD": targets,
             "Recommendations": ticker.recommendations_summary if hasattr(ticker, 'recommendations_summary') else "N/A"
         })
-    except Exception as e: return json.dumps({"error": str(e)})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 def get_multiple_stock_financials(symbols: str) -> str:
     """Gets P/E, P/B, ROE, and analyst targets for multiple BIST stocks (for peer comparison).
@@ -62,7 +87,7 @@ def get_multiple_stock_financials(symbols: str) -> str:
         except Exception as e:
             results[sym] = {"error": str(e)}
             
-    return json.dumps({"peer_comparison": results})
+    return _json_dumps({"peer_comparison": results})
 
 def screen_bist_stocks(index: str = 'BIST100', max_pe: float = None, min_roe: float = None,
                        min_upside: float = None, top_n: int = 8) -> str:
@@ -87,14 +112,14 @@ def screen_bist_stocks(index: str = 'BIST100', max_pe: float = None, min_roe: fl
             
         df = screener.run()
         if df.empty:
-            return json.dumps({"message": "Kriterlere uyan hisse bulunamadı. Kriterleri gevşetin.",
+            return _json_dumps({"message": "Kriterlere uyan hisse bulunamadı. Kriterleri gevşetin.",
                                "suggestion": "max_pe değerini artırın veya min_roe değerini düşürün."})
         
         df_top = df.head(top_n)
         result_list = df_top.to_dict(orient='records')
-        return json.dumps({"index": index, "total_matched": len(df), "top_results": result_list})
+        return _json_dumps({"index": index, "total_matched": len(df), "top_results": result_list})
     except Exception as e:
-        return json.dumps({"error": f"Screener execution failed: {str(e)}"})
+        return _json_dumps({"error": f"Screener execution failed: {str(e)}"})
 
 
 def screen_top_funds(period: str = '1y', fund_type: str = 'YAT', top_n: int = 8,
@@ -117,7 +142,7 @@ def screen_top_funds(period: str = '1y', fund_type: str = 'YAT', top_n: int = 8,
         df = bp.screen_funds(limit=1500, fund_type=fund_type)
         
         if df is None or df.empty:
-            return json.dumps({"error": "TEFAS fon verisine ulaşılamadı. Sunucu veya ağ hatası."})
+            return _json_dumps({"error": "TEFAS fon verisine ulaşılamadı. Sunucu veya ağ hatası."})
         
         df = df[df[sort_col].notna()]
         df_top = df.sort_values(by=sort_col, ascending=False).head(top_n)
@@ -125,16 +150,16 @@ def screen_top_funds(period: str = '1y', fund_type: str = 'YAT', top_n: int = 8,
         cols = ['fund_code', 'name', 'return_1m', 'return_3m', 'return_6m', 'return_1y']
         available_cols = [c for c in cols if c in df_top.columns]
         result = df_top[available_cols].round(2).to_dict(orient='records')
-        return json.dumps({"period_sorted_by": period, "fund_type": fund_type,
-                           "total_scanned": len(df), "top_funds": result}, default=str)
+        return _json_dumps({"period_sorted_by": period, "fund_type": fund_type,
+                           "total_scanned": len(df), "top_funds": result})
     except Exception as e:
-        return json.dumps({"error": f"Fund screener failed: {str(e)}"})
+        return _json_dumps({"error": f"Fund screener failed: {str(e)}"})
 
 def get_stock_technicals(symbol: str) -> str:
     try:
         ticker = bp.Ticker(symbol)
         df = ticker.history(period="1y")
-        if df.empty: return json.dumps({"error": "No data"})
+        if df.empty: return _json_dumps({"error": "No data"})
         
         # Convert historical prices to USD
         try:
@@ -156,7 +181,7 @@ def get_stock_technicals(symbol: str) -> str:
         try: supertrend = bp.calculate_supertrend(df).iloc[-1].to_dict()
         except: supertrend = "N/A"
         
-        return json.dumps({
+        return _json_dumps({
             "symbol": symbol,
             "Currency": "USD",
             "Price_USD": float(df['Close'].iloc[-1]),
@@ -166,7 +191,7 @@ def get_stock_technicals(symbol: str) -> str:
             "SMA200_USD": sma200,
             "Supertrend_USD": supertrend
         })
-    except Exception as e: return json.dumps({"error": str(e)})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 
 # --- CRYPTO TOOLS ---
@@ -182,16 +207,16 @@ def get_crypto_technicals(symbol: str) -> str:
             symbol += "USDT"
         crypto = bp.Crypto(symbol)
         df = crypto.history(period="6mo")
-        if df.empty: return json.dumps({"error": "No data"})
+        if df.empty: return _json_dumps({"error": "No data"})
         rsi = bp.calculate_rsi(df, period=14)
         macd_df = bp.calculate_macd(df)
-        return json.dumps({
+        return _json_dumps({
             "symbol": symbol,
             "Price": df['Close'].iloc[-1],
             "RSI_14": float(rsi.iloc[-1]) if not rsi.empty else 'N/A',
             "MACD": float(macd_df['MACD'].iloc[-1]) if 'MACD' in macd_df.columns else 'N/A',
         })
-    except Exception as e: return json.dumps({"error": str(e)})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 def get_crypto_momentum(symbol: str) -> str:
     """Gets crypto recent performance"""
@@ -204,24 +229,24 @@ def get_crypto_momentum(symbol: str) -> str:
             symbol += "USDT"
         crypto = bp.Crypto(symbol)
         df = crypto.history(period="1mo")
-        if df.empty: return json.dumps({"error": "No data"})
+        if df.empty: return _json_dumps({"error": "No data"})
         p_now = df['Close'].iloc[-1]
         p_7d = df['Close'].iloc[-7] if len(df) >= 7 else df['Close'].iloc[0]
         p_30d = df['Close'].iloc[0]
-        return json.dumps({
+        return _json_dumps({
             "symbol": symbol,
             "7_day_change_percent": round(((p_now - p_7d)/p_7d)*100, 2),
             "30_day_change_percent": round(((p_now - p_30d)/p_30d)*100, 2)
         })
-    except Exception as e: return json.dumps({"error": str(e)})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 # --- FUND TOOLS ---
 def get_fund_performance(symbol: str) -> str:
     try:
         fund = bp.Fund(symbol)
         perf = fund.performance
-        return json.dumps({"symbol": symbol, "performance": perf})
-    except Exception as e: return json.dumps({"error": str(e)})
+        return _json_dumps({"symbol": symbol, "performance": perf})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 def get_fund_allocation(symbol: str) -> str:
     try:
@@ -229,8 +254,8 @@ def get_fund_allocation(symbol: str) -> str:
         alloc = fund.allocation
         if alloc is not None and hasattr(alloc, 'to_dict'):
             alloc = alloc.to_dict(orient='records')
-        return json.dumps({"symbol": symbol, "allocation": alloc}, default=str)
-    except Exception as e: return json.dumps({"error": str(e)})
+        return _json_dumps({"symbol": symbol, "allocation": alloc})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 def get_fund_risk_metrics(symbol: str) -> str:
     try:
@@ -250,8 +275,8 @@ def get_fund_risk_metrics(symbol: str) -> str:
             if hasattr(sharpe_val, 'to_dict'): sharpe = sharpe_val.to_dict(orient='records')
             else: sharpe = str(sharpe_val)
             
-        return json.dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe}, default=str)
-    except Exception as e: return json.dumps({"error": str(e)})
+        return _json_dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe})
+    except Exception as e: return _json_dumps({"error": str(e)})
 
 def get_tcmb_rates() -> str:
     """Gets Turkey's current Central Bank (TCMB) interest rates."""
@@ -261,12 +286,12 @@ def get_tcmb_rates() -> str:
         provider = bp._providers.tcmb_rates.TCMBRatesProvider()
         data = provider._fetch_and_parse_table(bp._providers.tcmb_rates.TCMB_URLS["policy"])
         if not data:
-            return json.dumps({"error": "TCMB policy rate data could not be fetched."})
+            return _json_dumps({"error": "TCMB policy rate data could not be fetched."})
 
         latest = data[-1]
-        return json.dumps({"tcmb_rates": latest}, default=str)
+        return _json_dumps({"tcmb_rates": latest})
     except Exception as e:
-        return json.dumps({"error": f"TCMB execution failed: {str(e)}"})
+        return _json_dumps({"error": f"TCMB execution failed: {str(e)}"})
 
 # --- NEW EXTERNAL & ADVANCED MACRO TOOLS ---
 def get_macro_overview() -> str:
@@ -274,9 +299,9 @@ def get_macro_overview() -> str:
     try:
         from providers.global_markets import get_market_overview
         data = get_market_overview()
-        return json.dumps({"global_markets": data})
+        return _json_dumps({"global_markets": data})
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return _json_dumps({"error": str(e)})
 
 def get_fear_greed_index() -> str:
     """Gets the current Crypto Fear & Greed Index (alternative.me API) which serves as sentiment indicator for crypto markets."""
@@ -284,10 +309,10 @@ def get_fear_greed_index() -> str:
         from providers.fear_greed import get_current
         data = get_current()
         if data:
-            return json.dumps({"fear_and_greed": data})
-        return json.dumps({"error": "Failed to fetch Fear & Greed Index."})
+            return _json_dumps({"fear_and_greed": data})
+        return _json_dumps({"error": "Failed to fetch Fear & Greed Index."})
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return _json_dumps({"error": str(e)})
 
 def get_brent_oil_price() -> str:
     """Gets the current Brent Crude Oil price and its historical 1-month and 3-month performance using borsapy.FX."""
@@ -297,7 +322,7 @@ def get_brent_oil_price() -> str:
         cur = fx.current
         val = cur.get('last') if isinstance(cur, dict) else cur
         if not val:
-            return json.dumps({"error": "Brent oil price not found."})
+            return _json_dumps({"error": "Brent oil price not found."})
         
         df_3m = fx.history(period="3mo")
         change_1m = "N/A"
@@ -310,14 +335,14 @@ def get_brent_oil_price() -> str:
                 change_3m = round(((val - past_3m_price) / past_3m_price) * 100, 2)
             except:
                 pass
-        return json.dumps({
+        return _json_dumps({
             "symbol": "BRENT",
             "price_USD": val,
             "1_month_change_percent": change_1m,
             "3_month_change_percent": change_3m
         })
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return _json_dumps({"error": str(e)})
 
 def get_turkish_bond_yields() -> str:
     """Gets Turkish government bond yields (2Y, 5Y, 10Y) using borsapy.bonds() and Eurobonds list using borsapy.eurobonds()."""
@@ -333,25 +358,25 @@ def get_turkish_bond_yields() -> str:
             eurobonds_sorted = eurobonds_df.sort_values(by='ask_yield', ascending=False).head(8)
             eurobonds_list = eurobonds_sorted.to_dict(orient='records')
             
-        return json.dumps({
+        return _json_dumps({
             "tr_bonds": bonds_list,
             "tr_eurobonds_top_yield": eurobonds_list
-        }, default=str)
+        })
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return _json_dumps({"error": str(e)})
 
 # --- ROUTER TRANSFER TOOLS (Mock tools that don't do much but signal intent) ---
 def transfer_to_stock_expert() -> str:
-    return json.dumps({"status": "Transferred to Stock Expert. Ajan değişti."})
+    return _json_dumps({"status": "Transferred to Stock Expert. Agent changed."})
 
 def transfer_to_crypto_expert() -> str:
-    return json.dumps({"status": "Transferred to Crypto Expert. Ajan değişti."})
+    return _json_dumps({"status": "Transferred to Crypto Expert. Agent changed."})
 
 def transfer_to_fund_expert() -> str:
-    return json.dumps({"status": "Transferred to Fund Expert. Ajan değişti."})
+    return _json_dumps({"status": "Transferred to Fund Expert. Agent changed."})
 
 def transfer_to_macro_expert() -> str:
-    return json.dumps({"status": "Transferred to Macro Expert. Ajan değişti."})
+    return _json_dumps({"status": "Transferred to Macro Expert. Agent changed."})
 
 def transfer_to_warrant_expert() -> str:
-    return json.dumps({"status": "Transferred to Warrant Expert. Ajan değişti."})
+    return _json_dumps({"status": "Transferred to Warrant Expert. Agent changed."})
