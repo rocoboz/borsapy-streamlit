@@ -8,4 +8,4 @@ requests
 streamlit-searchbox
 
 openai
-extra-streamlit-components
+streamlit-local-storage

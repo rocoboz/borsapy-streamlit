@@ -2,10 +2,9 @@ import streamlit as st
 from openai import OpenAI
 import json
 import re
-import extra_streamlit_components as stx
+from streamlit_local_storage import LocalStorage
 
-def get_cookie_manager():
-    return stx.CookieManager(key="ai_assistant_cookie_manager")
+_local_storage = LocalStorage()
 
 # --- Profil Sistemi: Streamlit Cloud'da paylaşımlı disk riski olmadan session_state kullan ---
 DEFAULT_PROFILE = {"age": 30, "risk": "Orta (Dengeli)", "goal": "Orta Vade Büyüme"}
@@ -91,14 +90,11 @@ def app():
     conf = provider_config[provider_choice]
     state_key = conf["state_key"]
     
-    cookie_manager = get_cookie_manager()
-    
-    # Check if key exists in session state or cookie
+    # Check if key exists in session state or localStorage
     if state_key not in st.session_state or not st.session_state[state_key]:
-        # Try to load from cookie
-        cookie_val = cookie_manager.get(state_key)
-        if cookie_val:
-            st.session_state[state_key] = cookie_val
+        saved_val = _local_storage.getItem(state_key)
+        if saved_val:
+            st.session_state[state_key] = saved_val
         else:
             st.session_state[state_key] = ""
             
@@ -106,12 +102,12 @@ def app():
     if not st.session_state[state_key]:
         with st.container():
             st.warning(f"Ajanı kullanabilmek için lütfen bir {provider_choice} API anahtarı girin.")
-            api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password")
-            st.markdown("> 🔒 **Gizlilik:** Anahtarınız sunucuya kaydedilmez. F5 atsanız dahi silinmemesi için sadece tarayıcınızda (cookie/local) şifreli olarak saklanır.")
+            api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password", key=f"input_{state_key}")
+            st.markdown("> 🔒 **Gizlilik:** Anahtarınız sunucuya kesinlikle kaydedilmez. Sadece **kendi tarayıcınızdaki** localStorage'a yazılır. Sayfayı yenileseniz dahi silinmez.")
             if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key:
                     st.session_state[state_key] = api_key
-                    cookie_manager.set(state_key, api_key, key=f"set_{state_key}")
+                    _local_storage.setItem(state_key, api_key)
                     st.rerun()
                 else:
                     st.error("Lütfen geçerli bir anahtar girin.")
@@ -136,7 +132,7 @@ def app():
     # Logout button
     if st.sidebar.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout"):
         st.session_state[state_key] = ""
-        cookie_manager.delete(state_key, key=f"del_{state_key}")
+        _local_storage.deleteItem(state_key)
         st.rerun()
 
     if st.sidebar.button("🧹 Sohbet Geçmişini Temizle", key="clear_chat", help="Tüm sohbet geçmişini ve ajan bağlamını sıfırlar."):
