@@ -4,14 +4,6 @@ import json
 import re
 from streamlit_local_storage import LocalStorage
 
-_local_storage = LocalStorage()
-
-# --- localStorage İlk Render Düzeltmesi ---
-# streamlit-local-storage ilk render'da None döndürür (React henüz mount olmamış).
-# 'ls_ready' bayrağı ile ikinci render'ı bekliyoruz.
-if "ls_ready" not in st.session_state:
-    st.session_state["ls_ready"] = False
-
 # --- Profil Sistemi: Streamlit Cloud'da paylaşımlı disk riski olmadan session_state kullan ---
 DEFAULT_PROFILE = {"age": 30, "risk": "Orta (Dengeli)", "goal": "Orta Vade Büyüme"}
 
@@ -26,6 +18,15 @@ def save_profile(data):
     st.session_state["user_profile"] = data
 
 def app():
+    # --- localStorage: Her rerun'da güvenli şekilde başlat ---
+    # LocalStorage burada tanımlanıyor çünkü Streamlit widget'ları her zaman
+    # app() içinde (Streamlit döngüsünde) çağırılmalıdır.
+    _local_storage = LocalStorage()
+    # ls_ready: ilk render'da localStorage henüz hazır değil,
+    # ikinci render'da okumayı beklemek için bayrak.
+    if "ls_ready" not in st.session_state:
+        st.session_state["ls_ready"] = False
+
     # --- Neo-Fintech UI Styling ---
     st.markdown("""
     <style>
