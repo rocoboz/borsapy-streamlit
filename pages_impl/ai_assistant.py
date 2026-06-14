@@ -246,7 +246,7 @@ def app():
             st.markdown(prompt)
 
         # Agent Loop
-        with st.spinner("Swarm Orkestratörü piyasayı analiz ediyor..."):
+        with st.status("Swarm Orkestratörü piyasayı analiz ediyor...", expanded=True) as status_container:
             from agents.prompts import ROUTER_PROMPT, STOCK_EXPERT_PROMPT, CRYPTO_EXPERT_PROMPT, FUND_EXPERT_PROMPT, MACRO_EXPERT_PROMPT, WARRANT_EXPERT_PROMPT
             from agents.schemas import ROUTER_SCHEMA, STOCK_SCHEMA, CRYPTO_SCHEMA, FUND_SCHEMA, MACRO_SCHEMA, WARRANT_SCHEMA
             from agents.tools import (
@@ -378,23 +378,29 @@ def app():
                             function_to_call = ALL_TOOLS_MAP.get(function_name)
                             
                             st.toast(f"{st.session_state.current_agent.upper()} Ajanı çalışıyor: {function_name}()", icon="⚙️")
+                            status_container.write(f"⚙️ **{st.session_state.current_agent.upper()}** veri çekiyor: `{function_name}()`")
                             
                             # Handle dynamic agent transfers
                             if function_name == "transfer_to_stock_expert":
                                 st.session_state.current_agent = "stock"
                                 st.toast("Ajan Değiştirildi: Hisse Uzmanı devrede!", icon="🏢")
+                                status_container.write("🔀 **Yönlendirme:** 🏢 Hisse Senedi Uzmanına aktarıldı!")
                             elif function_name == "transfer_to_crypto_expert":
                                 st.session_state.current_agent = "crypto"
                                 st.toast("Ajan Değiştirildi: Kripto Uzmanı devrede!", icon="🪙")
+                                status_container.write("🔀 **Yönlendirme:** 🪙 Kripto Uzmanına aktarıldı!")
                             elif function_name == "transfer_to_fund_expert":
                                 st.session_state.current_agent = "fund"
                                 st.toast("Ajan Değiştirildi: Fon Uzmanı devrede!", icon="📊")
+                                status_container.write("🔀 **Yönlendirme:** 📊 Fon Uzmanına aktarıldı!")
                             elif function_name == "transfer_to_macro_expert":
                                 st.session_state.current_agent = "macro"
                                 st.toast("Ajan Değiştirildi: Makro & Emtia Uzmanı devrede!", icon="🌍")
+                                status_container.write("🔀 **Yönlendirme:** 🌍 Makro & Emtia Uzmanına aktarıldı!")
                             elif function_name == "transfer_to_warrant_expert":
                                 st.session_state.current_agent = "warrant"
                                 st.toast("Ajan Değiştirildi: Varant & Türev Uzmanı devrede!", icon="🎰")
+                                status_container.write("🔀 **Yönlendirme:** 🎰 Varant & Türev Uzmanına aktarıldı!")
                             if function_to_call:
                                 try:
                                     function_args = json.loads(tool_call.function.arguments)
@@ -434,6 +440,7 @@ def app():
                         tool_call_count += 1
                     else:
                         ai_reply = response_message.content
+                        status_container.update(label="Analiz Tamamlandı!", state="complete", expanded=False)
                         with st.chat_message("assistant"):
                             st.markdown(ai_reply)
                         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
