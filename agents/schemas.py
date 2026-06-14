@@ -331,14 +331,7 @@ MACRO_SCHEMA = [
             "parameters": {"type": "object", "properties": {}}
         }
     },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_fear_greed_index",
-            "description": "Gets the current Crypto Fear & Greed Index to understand global retail/sentiment indicators.",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    },
+
     {
         "type": "function",
         "function": {
