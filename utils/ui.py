@@ -1,4 +1,5 @@
 import streamlit as st
+from html import escape
 import json
 import requests
 
@@ -7,37 +8,44 @@ def load_css(file_name):
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url, timeout=6)
+        r.raise_for_status()
+    except requests.RequestException:
         return None
     return r.json()
 
 def render_header(title, subtitle=None):
+    safe_title = escape(str(title))
+    safe_subtitle = escape(str(subtitle)) if subtitle else None
     st.markdown(f"""
     <div class="animate-fade-in">
-        <h1 style="color: #00d2ff;">{title}</h1>
-        {f'<p style="font-size: 18px; opacity: 0.8;">{subtitle}</p>' if subtitle else ''}
+        <h1 style="color: #00d2ff;">{safe_title}</h1>
+        {f'<p style="font-size: 18px; opacity: 0.8;">{safe_subtitle}</p>' if safe_subtitle else ''}
         <hr style="border-color: rgba(255,255,255,0.1);">
     </div>
     """, unsafe_allow_html=True)
 
 def metric_card(label, value, delta=None, color="normal", icon=None):
+    safe_label = escape(str(label))
+    safe_value = escape(str(value))
     delta_html = ""
     if delta:
+        safe_delta = escape(str(delta))
         # Determine color based on delta content (auto-detect negative sign)
         is_negative = str(delta).strip().startswith("-")
         delta_color = "#ff0055" if is_negative else "#00ff88"
         
         # Add arrow
         arrow = "▼" if is_negative else "▲"
-        delta_html = f'<span style="color: {delta_color}; font-size: 0.85em; margin-left: 8px; font-weight: 500;">{arrow} {delta}</span>'
+        delta_html = f'<span style="color: {delta_color}; font-size: 0.85em; margin-left: 8px; font-weight: 500;">{arrow} {safe_delta}</span>'
     
-    icon_div = f'<div style="font-size: 1.5em; margin-bottom: 8px; color: #00d2ff;">{icon}</div>' if icon else ""
+    icon_div = f'<div style="font-size: 1.5em; margin-bottom: 8px; color: #00d2ff;">{escape(str(icon))}</div>' if icon else ""
 
     html_content = f"""<div class="custom-card animate-fade-in">
 {icon_div}
-<div style="font-size: 0.85em; opacity: 0.6; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">{label}</div>
-<div style="font-size: 2em; font-weight: 800; background: linear-gradient(90deg, #fff, #a0c4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 119, 255, 0.3);">{value} {delta_html}</div>
+<div style="font-size: 0.85em; opacity: 0.6; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600;">{safe_label}</div>
+<div style="font-size: 2em; font-weight: 800; background: linear-gradient(90deg, #fff, #a0c4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(0, 119, 255, 0.3);">{safe_value} {delta_html}</div>
 </div>"""
     st.markdown(html_content, unsafe_allow_html=True)
 

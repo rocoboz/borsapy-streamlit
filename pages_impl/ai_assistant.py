@@ -2,7 +2,6 @@ import streamlit as st
 from openai import OpenAI
 import json
 import re
-from streamlit_local_storage import LocalStorage
 
 # --- Profil Sistemi: Streamlit Cloud'da paylaşımlı disk riski olmadan session_state kullan ---
 DEFAULT_PROFILE = {"age": 30, "risk": "Orta (Dengeli)", "goal": "Orta Vade Büyüme"}
@@ -18,15 +17,6 @@ def save_profile(data):
     st.session_state["user_profile"] = data
 
 def app():
-    # --- localStorage: Her rerun'da güvenli şekilde başlat ---
-    # LocalStorage burada tanımlanıyor çünkü Streamlit widget'ları her zaman
-    # app() içinde (Streamlit döngüsünde) çağırılmalıdır.
-    _local_storage = LocalStorage()
-    # ls_ready: ilk render'da localStorage henüz hazır değil,
-    # ikinci render'da okumayı beklemek için bayrak.
-    if "ls_ready" not in st.session_state:
-        st.session_state["ls_ready"] = False
-
     # --- Neo-Fintech UI Styling ---
     st.markdown("""
     <style>
@@ -97,28 +87,19 @@ def app():
     conf = provider_config[provider_choice]
     state_key = conf["state_key"]
     
-    # Check if key exists in session state or localStorage
-    if state_key not in st.session_state or not st.session_state[state_key]:
-        if not st.session_state["ls_ready"]:
-            # İlk render: localStorage henüz hazır değil, bayrağı set et ve yeniden render et
-            st.session_state["ls_ready"] = True
-            st.rerun()
-        saved_val = _local_storage.getItem(state_key)
-        if saved_val:
-            st.session_state[state_key] = saved_val
-        else:
-            st.session_state[state_key] = ""
+    # Keep user API keys only in the current Streamlit session.
+    if state_key not in st.session_state:
+        st.session_state[state_key] = ""
             
     # Login Screen if no key
     if not st.session_state[state_key]:
         with st.container():
             st.warning(f"Ajanı kullanabilmek için lütfen bir {provider_choice} API anahtarı girin.")
             api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password", key=f"input_{state_key}")
-            st.markdown("> 🔒 **Gizlilik:** Anahtarınız sunucuya kesinlikle kaydedilmez. Sadece **kendi tarayıcınızdaki** localStorage'a yazılır. Sayfayı yenileseniz dahi silinmez.")
+            st.markdown("> 🔒 **Gizlilik:** Anahtarınız diske veya tarayıcı localStorage alanına kaydedilmez; yalnızca bu Streamlit oturumu boyunca bellekte tutulur.")
             if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key:
                     st.session_state[state_key] = api_key
-                    _local_storage.setItem(state_key, api_key)
                     st.rerun()
                 else:
                     st.error("Lütfen geçerli bir anahtar girin.")
@@ -146,7 +127,6 @@ def app():
     # Logout button
     if st.sidebar.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout"):
         st.session_state[state_key] = ""
-        _local_storage.deleteItem(state_key)
         st.rerun()
 
     if st.sidebar.button("🧹 Sohbet Geçmişini Temizle", key="clear_chat", help="Tüm sohbet geçmişini ve ajan bağlamını sıfırlar."):

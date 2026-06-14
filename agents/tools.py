@@ -254,17 +254,17 @@ def get_fund_risk_metrics(symbol: str) -> str:
     except Exception as e: return json.dumps({"error": str(e)})
 
 def get_tcmb_rates() -> str:
-    \"\"\"Gets Turkey's current Central Bank (TCMB) interest rates.\"\"\"
+    """Gets Turkey's current Central Bank (TCMB) interest rates."""
     try:
-        # The native bp.TCMB() returns outdated 7.0%. 
-        # Fallback to realistic current macro rate (50.0%) and prompt the agent to use get_macro_events for latest decisions.
-        return json.dumps({
-            "tcmb_rates": [
-                {"type": "policy", "rate": 50.0, "note": "Varsayılan güncel TCMB Politika Faizi. Doğrulama için get_macro_events kullanın."},
-                {"type": "overnight_lending", "rate": 53.0},
-                {"type": "overnight_borrowing", "rate": 47.0}
-            ]
-        })
+        import borsapy as bp
+
+        provider = bp._providers.tcmb_rates.TCMBRatesProvider()
+        data = provider._fetch_and_parse_table(bp._providers.tcmb_rates.TCMB_URLS["policy"])
+        if not data:
+            return json.dumps({"error": "TCMB policy rate data could not be fetched."})
+
+        latest = data[-1]
+        return json.dumps({"tcmb_rates": latest}, default=str)
     except Exception as e:
         return json.dumps({"error": f"TCMB execution failed: {str(e)}"})
 
