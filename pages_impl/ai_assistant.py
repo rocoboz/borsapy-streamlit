@@ -4,9 +4,8 @@ import json
 import re
 import extra_streamlit_components as stx
 
-@st.cache_resource
 def get_cookie_manager():
-    return stx.CookieManager()
+    return stx.CookieManager(key="ai_assistant_cookie_manager")
 
 # --- Profil Sistemi: Streamlit Cloud'da paylaşımlı disk riski olmadan session_state kullan ---
 DEFAULT_PROFILE = {"age": 30, "risk": "Orta (Dengeli)", "goal": "Orta Vade Büyüme"}
