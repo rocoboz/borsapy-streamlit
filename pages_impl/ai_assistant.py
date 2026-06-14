@@ -96,7 +96,7 @@ def app():
         with st.container():
             st.warning(f"Ajanı kullanabilmek için lütfen bir {provider_choice} API anahtarı girin.")
             api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password", key=f"input_{state_key}")
-            st.markdown("> 🔒 **Gizlilik:** Anahtarınız diske veya tarayıcı localStorage alanına kaydedilmez; yalnızca bu Streamlit oturumu boyunca bellekte tutulur.")
+            st.markdown("> 🔒 **Gizlilik:** API anahtarınız model sağlayıcısına istek gönderebilmek için bu Streamlit oturumunda bellekte tutulur; diske, tarayıcı localStorage alanına veya repoya kaydedilmez. Public kullanımda yalnızca güvendiğiniz dağıtımlarda kendi anahtarınızı girin.")
             if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key:
                     st.session_state[state_key] = api_key
