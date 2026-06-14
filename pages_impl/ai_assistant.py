@@ -16,6 +16,17 @@ def save_profile(data):
     """Profili sadece session_state'e kaydeder. Tarayıcı kapanınca sıfırlanır."""
     st.session_state["user_profile"] = data
 
+
+def _to_api_message(message):
+    if isinstance(message, dict):
+        return message
+    if hasattr(message, "model_dump"):
+        return message.model_dump(exclude_none=True)
+    return {
+        "role": getattr(message, "role", "assistant"),
+        "content": getattr(message, "content", None),
+    }
+
 def app():
     # --- Neo-Fintech UI Styling ---
     st.markdown("""
@@ -349,9 +360,10 @@ def app():
                     response_message = response.choices[0].message
                     
                     if response_message.tool_calls:
-                        # Add assistant tool call request to messages
-                        api_messages.append(response_message)
-                        st.session_state.messages.append(response_message)
+                        # Store provider responses as plain dicts for OpenAI-compatible API stability.
+                        assistant_msg = _to_api_message(response_message)
+                        api_messages.append(assistant_msg)
+                        st.session_state.messages.append(assistant_msg)
                         
                         for tool_call in response_message.tool_calls:
                             function_name = tool_call.function.name
@@ -414,7 +426,7 @@ def app():
                         # Eğer transfer gerçekleştiyse, son eklenen asistan transfer istek mesajını (tool_calls barındıran)
                         # api_messages listesinden kaldırıyoruz ki bir sonraki turda yeni ajanın şemasıyla çelişmesin.
                         is_transfer = any(tc.function.name.startswith("transfer_to_") for tc in response_message.tool_calls)
-                        if is_transfer and api_messages and api_messages[-1] == response_message:
+                        if is_transfer and api_messages and api_messages[-1] == assistant_msg:
                             api_messages.pop()
                             
                         tool_call_count += 1
@@ -437,3 +449,11 @@ def app():
                     else:
                         st.error(f"🚨 **Süper Ajan API Hatası:** {err_str}")
                     break
+            else:
+                fallback_reply = (
+                    "Analiz döngüsü beklenenden fazla veri aracı çağırdı ve güvenlik limiti nedeniyle durduruldu. "
+                    "Lütfen soruyu biraz daraltarak tekrar deneyin."
+                )
+                status_container.update(label="Analiz güvenlik limitiyle durduruldu.", state="error", expanded=True)
+                st.warning(fallback_reply)
+                st.session_state.messages.append({"role": "assistant", "content": fallback_reply})
