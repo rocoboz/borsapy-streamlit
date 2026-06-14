@@ -124,7 +124,7 @@ def screen_top_funds(period: str = '1y', fund_type: str = 'YAT', top_n: int = 8,
         return json.dumps({"period_sorted_by": period, "fund_type": fund_type,
                            "total_scanned": len(df), "top_funds": result}, default=str)
     except Exception as e:
-        return json.dumps({"error": f"Fund screener failed: {str(e)})"})
+        return json.dumps({"error": f"Fund screener failed: {str(e)}"})
 
 def get_stock_technicals(symbol: str) -> str:
     try:
@@ -169,8 +169,13 @@ def get_stock_technicals(symbol: str) -> str:
 def get_crypto_technicals(symbol: str) -> str:
     """Gets crypto technicals using borsapy.Crypto"""
     try:
-        symbol = symbol.replace("-", "").upper()
-        if not symbol.endswith("USDT") and not symbol.endswith("TRY"): symbol += "USDT"
+        # Normalize: 'BTC-USD' -> 'BTCUSDT', 'BTC' -> 'BTCUSDT'
+        symbol = symbol.upper().replace("-", "")
+        # Strip any trailing USD to avoid BTCUSDUSDT
+        if symbol.endswith("USD") and not symbol.endswith("USDT"):
+            symbol = symbol[:-3]
+        if not symbol.endswith("USDT") and not symbol.endswith("TRY"):
+            symbol += "USDT"
         crypto = bp.Crypto(symbol)
         df = crypto.history(period="6mo")
         if df.empty: return json.dumps({"error": "No data"})
@@ -187,8 +192,12 @@ def get_crypto_technicals(symbol: str) -> str:
 def get_crypto_momentum(symbol: str) -> str:
     """Gets crypto recent performance"""
     try:
-        symbol = symbol.replace("-", "").upper()
-        if not symbol.endswith("USDT") and not symbol.endswith("TRY"): symbol += "USDT"
+        # Normalize: 'BTC-USD' -> 'BTCUSDT', 'BTC' -> 'BTCUSDT'
+        symbol = symbol.upper().replace("-", "")
+        if symbol.endswith("USD") and not symbol.endswith("USDT"):
+            symbol = symbol[:-3]
+        if not symbol.endswith("USDT") and not symbol.endswith("TRY"):
+            symbol += "USDT"
         crypto = bp.Crypto(symbol)
         df = crypto.history(period="1mo")
         if df.empty: return json.dumps({"error": "No data"})

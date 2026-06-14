@@ -127,7 +127,7 @@ STOCK_SCHEMA = [
         "type": "function",
         "function": {
             "name": "get_macro_events",
-            "description": "Fetches the upcoming/today's high-importance macroeconomic events (Economic Calendar).",
+            "description": "Fetches the past and upcoming high-importance macroeconomic events (Economic Calendar) and current TCMB policy rate. Use this for comprehensive stock analyses to understand the macro context (bilanço dönemi, faiz kararı tarihleri vb.).",
             "parameters": {"type": "object", "properties": {}}
         }
     }

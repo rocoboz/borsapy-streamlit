@@ -6,6 +6,12 @@ from streamlit_local_storage import LocalStorage
 
 _local_storage = LocalStorage()
 
+# --- localStorage İlk Render Düzeltmesi ---
+# streamlit-local-storage ilk render'da None döndürür (React henüz mount olmamış).
+# 'ls_ready' bayrağı ile ikinci render'ı bekliyoruz.
+if "ls_ready" not in st.session_state:
+    st.session_state["ls_ready"] = False
+
 # --- Profil Sistemi: Streamlit Cloud'da paylaşımlı disk riski olmadan session_state kullan ---
 DEFAULT_PROFILE = {"age": 30, "risk": "Orta (Dengeli)", "goal": "Orta Vade Büyüme"}
 
@@ -92,6 +98,10 @@ def app():
     
     # Check if key exists in session state or localStorage
     if state_key not in st.session_state or not st.session_state[state_key]:
+        if not st.session_state["ls_ready"]:
+            # İlk render: localStorage henüz hazır değil, bayrağı set et ve yeniden render et
+            st.session_state["ls_ready"] = True
+            st.rerun()
         saved_val = _local_storage.getItem(state_key)
         if saved_val:
             st.session_state[state_key] = saved_val
@@ -124,6 +134,9 @@ def app():
     
     if model_choice == "Diğer (Özel Model ID Gir)":
         model = st.sidebar.text_input("Özel Model ID", help="Sağlayıcının desteklediği herhangi bir model ID'sini yazın.")
+        if not model:
+            st.sidebar.warning("⚠️ Lütfen bir Model ID girin.")
+            st.stop()
     else:
         model = model_choice
         
@@ -170,6 +183,11 @@ def app():
     # 4. Chat Interface
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    
+    # Mesaj geçmişini son 50 girdi ile sınırla (token overflow önleme)
+    MAX_HISTORY = 50
+    if len(st.session_state.messages) > MAX_HISTORY:
+        st.session_state.messages = st.session_state.messages[-MAX_HISTORY:]
         
     # Display chat history
     for msg in st.session_state.messages:
@@ -420,5 +438,13 @@ def app():
                         st.session_state.messages.append({"role": "assistant", "content": ai_reply})
                         break
                 except Exception as e:
-                    st.error(f"Süper Ajan API Hatası: {str(e)}")
+                    err_str = str(e)
+                    if "401" in err_str or "Unauthorized" in err_str or "api_key" in err_str.lower():
+                        st.error("🔒 **Geçersiz API Anahtarı (401):** Girdiğiniz anahtar hatalı veya süresi dolmuş. Lütfen anahtarı kontrol edip 'Bağlantıyı Kes' ile tekrar giriş yapın.")
+                    elif "429" in err_str or "rate limit" in err_str.lower() or "quota" in err_str.lower():
+                        st.error("⏳ **İstek Limiti Aşıldı (429):** Bu model için istek limitiniz doldu. Birkaç dakika bekleyin veya farklı bir model deneyin.")
+                    elif "503" in err_str or "overloaded" in err_str.lower() or "unavailable" in err_str.lower():
+                        st.error("🔄 **Model Geçici Olarak Meşgul (503):** Seçilen model şu an yoğun veya kullanılamıyor. Farklı bir model deneyin.")
+                    else:
+                        st.error(f"🚨 **Süper Ajan API Hatası:** {err_str}")
                     break
