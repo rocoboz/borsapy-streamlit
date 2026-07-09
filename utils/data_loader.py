@@ -69,11 +69,22 @@ def get_index_info(symbol):
 @st.cache_data(ttl=300)
 def get_fx_rate(symbol):
     try:
+        if symbol.lower() == "ons-altin" or symbol.upper() == "XAU":
+            import yfinance as yf
+            ticker = yf.Ticker("GC=F")
+            hist = ticker.history(period="1mo")
+            if not hist.empty:
+                val = hist['Close'].iloc[-1]
+                return val, hist
+            import pandas as pd
+            return None, pd.DataFrame()
+            
         fx = bp.FX(symbol)
         cur = fx.current
         val = cur.get('last') if isinstance(cur, dict) else cur
         return val, fx.history(period="1mo")
     except:
+        import pandas as pd
         return None, pd.DataFrame()
 
 @st.cache_data(ttl=300)

@@ -27,12 +27,9 @@ def app():
     # 1. Değerli Metaller
     usd_val, _ = get_fx_rate("USD")
     gold_gr, _ = get_fx_rate("gram-altin")
-    gold_ons_try, _ = get_fx_rate("ons-altin")
+    gold_ons_usd, _ = get_fx_rate("ons-altin")
     silver_gr, _ = get_fx_rate("gram-gumus")
     silver_ons_usd, _ = get_fx_rate("XAG-USD")
-    
-    # Ons Altın (USD) hesabı
-    gold_ons_usd = (gold_ons_try / usd_val) if (gold_ons_try and usd_val) else None
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
