@@ -1,6 +1,7 @@
 import json
 import math
 
+import streamlit as st
 import borsapy as bp
 from utils.data_loader import get_ticker_info
 
@@ -89,6 +90,7 @@ def get_multiple_stock_financials(symbols: str) -> str:
             
     return _json_dumps({"peer_comparison": results})
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def screen_bist_stocks(index: str = 'BIST100', max_pe: float = None, min_roe: float = None,
                        min_upside: float = None, top_n: int = 8) -> str:
     """Tarayıcı (Screener) ile BIST hisselerini filtreler ve en iyi sonuçları döner.
@@ -122,6 +124,7 @@ def screen_bist_stocks(index: str = 'BIST100', max_pe: float = None, min_roe: fl
         return _json_dumps({"error": f"Screener execution failed: {str(e)}"})
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def screen_top_funds(period: str = '1y', fund_type: str = 'YAT', top_n: int = 8,
                      min_return_1m: float = None, min_return_1y: float = None) -> str:
     """TEFAS fonlarını belirtilen döneme göre sıralayarak en iyi performanslı fonları döner.
@@ -278,6 +281,7 @@ def get_fund_risk_metrics(symbol: str) -> str:
         return _json_dumps({"symbol": symbol, "Risk_Metrics": risk, "Sharpe_Ratio": sharpe})
     except Exception as e: return _json_dumps({"error": str(e)})
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_tcmb_rates() -> str:
     """Gets Turkey's current Central Bank (TCMB) interest rates."""
     try:
@@ -294,6 +298,7 @@ def get_tcmb_rates() -> str:
         return _json_dumps({"error": f"TCMB execution failed: {str(e)}"})
 
 # --- NEW EXTERNAL & ADVANCED MACRO TOOLS ---
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_macro_overview() -> str:
     """Gets global markets indices overview (S&P 500, Nasdaq, VIX, DXY, DAX, FTSE 100, Nikkei 225) using global_markets provider."""
     try:
@@ -303,6 +308,7 @@ def get_macro_overview() -> str:
     except Exception as e:
         return _json_dumps({"error": str(e)})
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_fear_greed_index() -> str:
     """Gets the current Crypto Fear & Greed Index (alternative.me API) which serves as sentiment indicator for crypto markets."""
     try:
@@ -314,6 +320,7 @@ def get_fear_greed_index() -> str:
     except Exception as e:
         return _json_dumps({"error": str(e)})
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_brent_oil_price() -> str:
     """Gets the current Brent Crude Oil price and its historical 1-month and 3-month performance using borsapy.FX."""
     try:
@@ -344,6 +351,7 @@ def get_brent_oil_price() -> str:
     except Exception as e:
         return _json_dumps({"error": str(e)})
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_turkish_bond_yields() -> str:
     """Gets Turkish government bond yields (2Y, 5Y, 10Y) using borsapy.bonds() and Eurobonds list using borsapy.eurobonds()."""
     try:

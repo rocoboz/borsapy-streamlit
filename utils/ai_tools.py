@@ -1,7 +1,9 @@
 import json
 import traceback
+import streamlit as st
 from utils.data_loader import get_ticker_info
 
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_live_price(symbol: str) -> str:
     """Gets the live price and change percentage of a symbol."""
     ticker = get_ticker_info(symbol)
@@ -20,6 +22,7 @@ def get_live_price(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_financial_metrics(symbol: str) -> str:
     """Gets fundamental financial metrics like P/E, P/B, ROE, analyst targets, recommendations for a symbol."""
     ticker = get_ticker_info(symbol)
@@ -95,13 +98,14 @@ def get_technical_analysis(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_currency_and_gold_price(symbol: str) -> str:
     """Gets the live price of a currency or gold (e.g., 'USD', 'EUR', 'gram-altin') and its 1-month and 3-month change."""
     import borsapy as bp
     import yfinance as yf
     try:
         symbol = symbol.upper()
-        if symbol in ["XAU", "XAU/USD", "ONS", "GOLD"]:
+        if symbol in ["XAU", "XAU/USD", "ONS", "GOLD", "ONS-ALTIN", "ONS_ALTIN", "ONSALTIN"]:
             # Fallback to yfinance for Gold (XAUUSD=X) since bp.FX may not support it
             ticker = yf.Ticker("GC=F")
             hist = ticker.history(period="3mo")
@@ -115,10 +119,30 @@ def get_currency_and_gold_price(symbol: str) -> str:
             change_3m = round(((val - past_3m_price) / past_3m_price) * 100, 2)
             
             return json.dumps({
-                "symbol": "XAU/USD",
+                "symbol": "ONS-ALTIN(USD)",
                 "price_USD": val,
                 "1_month_change_percent": change_1m,
                 "3_month_change_percent": change_3m
+            })
+            
+        if symbol in ["GRAM", "GRAM-ALTIN", "GRAM_ALTIN", "GRAMALTIN"]:
+            # Calculate Gram Altin: (Ons USD / 31.1035) * USD/TRY
+            ons_ticker = yf.Ticker("GC=F")
+            ons_hist = ons_ticker.history(period="1d")
+            if ons_hist.empty:
+                return json.dumps({"error": "Gold data not found."})
+                
+            usd_fx = bp.FX("USD")
+            usd_cur = usd_fx.current
+            usd_val = usd_cur.get('last') if isinstance(usd_cur, dict) else usd_cur
+            
+            ons_val = ons_hist['Close'].iloc[-1]
+            gram_val = round((ons_val / 31.1035) * float(usd_val), 2)
+            
+            return json.dumps({
+                "symbol": "GRAM-ALTIN",
+                "price_TRY": gram_val,
+                "note": "ONS ve USD/TRY üzerinden hesaplanmıştır."
             })
             
         fx = bp.FX(symbol)
@@ -173,6 +197,7 @@ def get_latest_news(symbol: str) -> str:
     except Exception as e:
         return json.dumps({"error": str(e)})
 
+@st.cache_data(ttl=1800, show_spinner=False)
 def get_global_news(category: str = 'all') -> str:
     """
     Birden fazla kaynaktan ekonomi ve piyasa haberlerini toplar.
