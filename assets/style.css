@@ -1,20 +1,20 @@
-/* Global Theme - Modern Light Dashboard 2026 */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+/* Global Theme - Modern Dark Dashboard 2026 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --primary: #f78c6b;
-    --secondary: #8cd9a4;
-    --bg-main: #f0f4f8;
-    --bg-card: #ffffff;
-    --text-main: #2d3748;
-    --text-dim: #718096;
-    --success: #48bb78;
-    --danger: #e53e3e;
-    --border-light: #e2e8f0;
-    --font: 'Outfit', sans-serif;
+    --primary: #3b82f6;
+    --secondary: #8b5cf6;
+    --bg-main: #0e1117;
+    --bg-card: #18181b;
+    --text-main: #f4f4f5;
+    --text-dim: #a1a1aa;
+    --success: #10b981;
+    --danger: #ef4444;
+    --border-dark: #27272a;
+    --font: 'Inter', sans-serif;
 }
 
-/* Base Layout */
+/* Base Layout & Padding Optimization */
 .stApp {
     background-color: var(--bg-main);
     background-image: none;
@@ -22,51 +22,61 @@
     color: var(--text-main);
 }
 
+/* Optimize main container padding for max width */
+[data-testid="block-container"] {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    max-width: 100% !important;
+}
+
 header {visibility: hidden;}
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #ffffff;
-    border-right: 1px solid var(--border-light);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+    background: #0e1117;
+    border-right: 1px solid var(--border-dark);
 }
 
-/* Clean Flat Cards */
+/* Clean Flat Dark Cards */
 .custom-card {
     background: var(--bg-card);
     border-radius: 12px;
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-dark);
     padding: 24px;
     margin-bottom: 20px;
     position: relative;
     overflow: hidden;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.04);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
 }
 
 .custom-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.04), 0 10px 20px rgba(0,0,0,0.08);
+    border-color: #3f3f46;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
 }
 
 .card-header-dark {
-    background-color: #2d3748;
-    color: white;
+    background-color: #27272a;
+    color: #e4e4e7;
     padding: 12px 20px;
     margin: -24px -24px 20px -24px;
     font-weight: 600;
     font-size: 0.9em;
     letter-spacing: 0.5px;
     border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid var(--border-dark);
 }
 
 /* Inputs & Widgets */
 .stTextInput input, .stNumberInput input, .stSelectbox > div > div {
-    background-color: #ffffff !important;
-    border: 1px solid var(--border-light) !important;
+    background-color: #18181b !important;
+    border: 1px solid var(--border-dark) !important;
     border-radius: 8px !important;
     color: var(--text-main) !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    transition: all 0.2s;
 }
 
 .stTextInput input:focus, .stNumberInput input:focus, .stSelectbox > div > div:focus-within {
@@ -80,25 +90,24 @@ section[data-testid="stSidebar"] {
     border: none !important;
     border-radius: 8px !important;
     color: white !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     letter-spacing: 0.5px;
     padding: 0.6rem 1.2rem !important;
-    box-shadow: 0 4px 6px rgba(247, 140, 107, 0.2) !important;
-    background-image: none !important;
+    transition: all 0.2s !important;
 }
 
 .stButton > button:hover {
-    background-color: #e87b5a !important;
+    background-color: #2563eb !important;
     transform: translateY(-1px);
-    box-shadow: 0 6px 10px rgba(247, 140, 107, 0.3) !important;
 }
 
 /* Tab Styling */
 .stTabs [data-baseweb="tab-list"] {
-    background: #e2e8f0;
+    background: #18181b;
     border-radius: 10px;
     padding: 4px;
     gap: 4px;
+    border: 1px solid var(--border-dark);
 }
 
 .stTabs [data-baseweb="tab"] {
@@ -115,22 +124,20 @@ section[data-testid="stSidebar"] {
 }
 
 .stTabs [data-baseweb="tab"][aria-selected="true"] {
-    background: #ffffff;
+    background: #27272a;
     color: var(--text-main);
     font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    background-image: none;
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
 @keyframes slideInUp { 0% { transform: translateY(10px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 .animate-fade-in { animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-div[data-testid="stDataFrame"] { background: #ffffff; border-radius: 12px; padding: 10px; border: 1px solid var(--border-light); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-div[data-testid="stDataFrame"] div[class*="stColumnHeaders"] { background: #f7fafc !important; color: var(--text-main) !important; font-weight: 600 !important; border-bottom: 1px solid var(--border-light) !important; }
+div[data-testid="stDataFrame"] { background: #18181b; border-radius: 12px; padding: 10px; border: 1px solid var(--border-dark); }
+div[data-testid="stDataFrame"] div[class*="stColumnHeaders"] { background: #27272a !important; color: var(--text-main) !important; font-weight: 600 !important; border-bottom: 1px solid var(--border-dark) !important; }
 
-h1, h2, h3 { color: #1a202c !important; font-weight: 700 !important; }
+h1, h2, h3 { color: #f4f4f5 !important; font-weight: 700 !important; }

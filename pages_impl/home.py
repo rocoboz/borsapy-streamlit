@@ -10,17 +10,28 @@ def app():
     time_str = f"Son Güncelleme: {update_time}" if update_time else "Güncel Veri Bekleniyor..."
 
     # Header
-    st.markdown(f"""
-    <div class="animate-fade-in" style="margin-bottom: 20px; text-align: center;">
-        <h1 style="font-size: 3em; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
-            Piyasa Kokpiti
-        </h1>
-        <p style="font-size: 1.1em; opacity: 0.8; max-width: 600px; margin: 0 auto;">
-            BorsaPY Pro'ya hoş geldiniz. Küresel ve yerel piyasaların anlık röntgeni.<br>
-            <span style="font-size: 0.85em; color: #a0a5b9;">🕒 {time_str}</span>
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    from streamlit_lottie import st_lottie
+    from utils.ui import load_lottieurl
+    
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        lottie_url = "https://lottie.host/6b325256-d4f1-4db8-b59d-d8869ffbc8ec/oN0g7gA6kI.json"
+        lottie_json = load_lottieurl(lottie_url)
+        if lottie_json:
+            st_lottie(lottie_json, height=120, key="home_lottie")
+            
+    with col2:
+        st.markdown(f"""
+        <div class="animate-fade-in" style="margin-bottom: 20px; text-align: left;">
+            <h1 style="font-size: 3em; color: #f4f4f5; margin-bottom: 10px;">
+                Piyasa Kokpiti
+            </h1>
+            <p style="font-size: 1.1em; color: #a1a1aa; max-width: 600px;">
+                BorsaPY Pro'ya hoş geldiniz. Küresel ve yerel piyasaların anlık röntgeni.<br>
+                <span style="font-size: 0.85em; color: #718096;">🕒 {time_str}</span>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     

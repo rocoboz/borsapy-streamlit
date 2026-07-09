@@ -60,9 +60,9 @@ with st.sidebar:
         default_index=0,
         styles={
             "container": {"padding": "0!important", "background-color": "transparent"},
-            "icon": {"color": "#00d2ff", "font-size": "16px"}, 
-            "nav-link": {"font-size": "14px", "text-align": "left", "margin":"0px", "--hover-color": "rgba(255,255,255,0.1)"},
-            "nav-link-selected": {"background-color": "rgba(0, 210, 255, 0.15)", "border-left": "3px solid #00d2ff"},
+            "icon": {"color": "#a1a1aa", "font-size": "16px"}, 
+            "nav-link": {"font-size": "14px", "text-align": "left", "margin":"0px", "--hover-color": "#18181b", "color": "#a1a1aa"},
+            "nav-link-selected": {"background-color": "#18181b", "border-left": "3px solid #3b82f6", "color": "#f4f4f5"},
         }
     )
     

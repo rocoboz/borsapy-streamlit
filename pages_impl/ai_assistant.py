@@ -28,22 +28,19 @@ def _to_api_message(message):
     }
 
 def app():
-    # --- Neo-Fintech UI Styling ---
+    # --- Modern Dark UI Styling ---
+    from streamlit_lottie import st_lottie
+    from utils.ui import load_lottieurl
+
     st.markdown("""
     <style>
-    /* Sidebar Glassmorphism */
-    [data-testid="stSidebar"] {
-        background: rgba(15, 23, 42, 0.7);
-        backdrop-filter: blur(12px);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
     /* Main Chat Area Polish */
     .stChatMessage {
         border-radius: 12px;
         padding: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid var(--border-dark);
         margin-bottom: 10px;
+        background: #18181b;
     }
     .stChatMessage[data-testid="chatAvatarIcon-user"] {
         background: rgba(59, 130, 246, 0.1);
@@ -53,20 +50,23 @@ def app():
         background: rgba(16, 185, 129, 0.05);
         border: 1px solid rgba(16, 185, 129, 0.2);
     }
-    
-    /* Title Animation */
-    .title-glow {
-        color: #00d2ff; 
-        text-align: center; 
-        margin-bottom: 0;
-        text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
-    }
     </style>
-    <div class="animate-fade-in" style="margin-bottom: 5px;">
-        <h3 class="title-glow">🤖 Neo-Fintech Süper Ajan</h3>
-        <p style="text-align: center; opacity: 0.8; font-size: 0.9em; margin-top: 5px;">BorsaPY fonksiyonlarını kullanarak profesyonel analiz yapan Ajan.</p>
-    </div>
     """, unsafe_allow_html=True)
+    
+    colA, colB = st.columns([1, 4])
+    with colA:
+        lottie_ai_url = "https://lottie.host/801a610f-6246-4e58-94df-74f0c43ca3f0/E8w9tJp33y.json"
+        lottie_ai_json = load_lottieurl(lottie_ai_url)
+        if lottie_ai_json:
+            st_lottie(lottie_ai_json, height=100, key="ai_lottie")
+            
+    with colB:
+        st.markdown("""
+        <div class="animate-fade-in" style="margin-bottom: 5px;">
+            <h3 style="color: #f4f4f5; margin-bottom: 0;">🧠 BorsaPY Süper Ajan</h3>
+            <p style="opacity: 0.8; font-size: 0.9em; margin-top: 5px; color: #a1a1aa;">BorsaPY fonksiyonlarını kullanarak profesyonel analiz yapan Ajan.</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # 1. AI Provider Selection
     st.sidebar.markdown("### 🤖 Ajan Ayarları")
