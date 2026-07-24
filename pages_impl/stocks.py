@@ -124,18 +124,86 @@ def app():
             tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📈 Grafik", "📊 Mali Tablolar", "🏢 Kurumsal", "📰 Haberler", "🎯 Analist", "🌏 ETF Sahipliği"])
             
             with tab1:
-                st.subheader(f"{symbol} Fiyat Grafiği")
-                period = st.select_slider("Periyot", options=["1ay", "3ay", "6ay", "1y", "5y", "max"], value="1y")
+                st.subheader(f"{symbol} İnteraktif Grafik & Teknik Analiz")
+                
+                c_g1, c_g2 = st.columns([1, 2])
+                with c_g1:
+                    period = st.select_slider("Periyot", options=["1ay", "3ay", "6ay", "1y", "5y", "max"], value="1y")
+                with c_g2:
+                    indicators = st.multiselect("Göstergeler", ["SMA 20", "SMA 50", "Bollinger Bantları", "Hacim (Volume)"], default=["SMA 20", "Hacim (Volume)"])
                 
                 df = get_stock_history(symbol, period=period)
                 if not df.empty:
-                    fig = go.Figure(data=[go.Candlestick(x=df.index,
-                                    open=df['Open'],
-                                    high=df['High'],
-                                    low=df['Low'],
-                                    close=df['Close'])])
-                    fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=500)
-                    st.plotly_chart(fig)
+                    from plotly.subplots import make_subplots
+                    
+                    show_volume = "Hacim (Volume)" in indicators and 'Volume' in df.columns
+                    
+                    if show_volume:
+                        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.75, 0.25])
+                    else:
+                        fig = go.Figure()
+                    
+                    # Candlestick
+                    candlestick = go.Candlestick(
+                        x=df.index,
+                        open=df['Open'],
+                        high=df['High'],
+                        low=df['Low'],
+                        close=df['Close'],
+                        name="Fiyat (OHLC)"
+                    )
+                    
+                    if show_volume:
+                        fig.add_trace(candlestick, row=1, col=1)
+                    else:
+                        fig.add_trace(candlestick)
+                    
+                    # SMA 20
+                    if "SMA 20" in indicators and len(df) >= 20:
+                        sma20 = df['Close'].rolling(window=20).mean()
+                        trace_sma20 = go.Scatter(x=df.index, y=sma20, mode='lines', name='SMA 20', line=dict(color='#00d2ff', width=1.5))
+                        if show_volume: fig.add_trace(trace_sma20, row=1, col=1)
+                        else: fig.add_trace(trace_sma20)
+
+                    # SMA 50
+                    if "SMA 50" in indicators and len(df) >= 50:
+                        sma50 = df['Close'].rolling(window=50).mean()
+                        trace_sma50 = go.Scatter(x=df.index, y=sma50, mode='lines', name='SMA 50', line=dict(color='#ff9900', width=1.5))
+                        if show_volume: fig.add_trace(trace_sma50, row=1, col=1)
+                        else: fig.add_trace(trace_sma50)
+
+                    # Bollinger Bands
+                    if "Bollinger Bantları" in indicators and len(df) >= 20:
+                        sma = df['Close'].rolling(window=20).mean()
+                        std = df['Close'].rolling(window=20).std()
+                        upper_band = sma + (std * 2)
+                        lower_band = sma - (std * 2)
+                        
+                        trace_upper = go.Scatter(x=df.index, y=upper_band, mode='lines', name='Bollinger Üst', line=dict(color='rgba(173, 216, 230, 0.4)', width=1, dash='dash'))
+                        trace_lower = go.Scatter(x=df.index, y=lower_band, mode='lines', name='Bollinger Alt', line=dict(color='rgba(173, 216, 230, 0.4)', width=1, dash='dash'))
+                        
+                        if show_volume:
+                            fig.add_trace(trace_upper, row=1, col=1)
+                            fig.add_trace(trace_lower, row=1, col=1)
+                        else:
+                            fig.add_trace(trace_upper)
+                            fig.add_trace(trace_lower)
+
+                    # Volume Subplot
+                    if show_volume:
+                        colors = ['#00ff9d' if c >= o else '#ff0055' for c, o in zip(df['Close'], df['Open'])]
+                        vol_bar = go.Bar(x=df.index, y=df['Volume'], name='Hacim', marker_color=colors)
+                        fig.add_trace(vol_bar, row=2, col=1)
+                        fig.update_yaxes(title_text="Hacim", row=2, col=1)
+                    
+                    fig.update_layout(
+                        template="plotly_dark",
+                        height=550,
+                        margin=dict(l=20, r=20, t=30, b=20),
+                        xaxis_rangeslider_visible=False,
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.warning("Grafik verisi alınamadı.")
 

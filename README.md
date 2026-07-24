@@ -14,7 +14,7 @@
 ### 🤖 Yapay Zeka Destekli Swarm Terminali
 - **Akıllı Orkestratör:** Kullanıcı sorgusunu analiz ederek otomatik olarak ilgili uzman ajana (Hisse, Kripto, Fon, Makro, Varant) yönlendirir.
 - **Hisse & Fon Tarayıcı Entegrasyonu:** Genel öneri sorgularında (`hisse öner`, `en iyi fonlar`) yapay zeka doğrudan toplu tarama algoritmalarını çalıştırır.
-- **Kişiselleştirilmiş Profil:** Ajanlar, kullanıcı risk profiline (yaş, risk seviyesi, yatırım amacı) göre kararları ve güven skorlarını kişiselleştirir.
+- **Sohbet Raporlama Desteği:** Analiz sonuçları ve ajan sohbet dökümleri tek tıkla Markdown dosyası olarak indirilebilir.
 
 ### 📊 Detaylı Piyasa Analizi
 - **Hisse Senetleri:** BIST 100/30 şirketleri için teknik analiz, bilanço, gelir tablosu ve KAP haberleri.

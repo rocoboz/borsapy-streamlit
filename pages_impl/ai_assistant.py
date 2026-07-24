@@ -3,20 +3,6 @@ from openai import OpenAI
 import json
 import re
 
-# --- Profil Sistemi: Streamlit Cloud'da paylaşımlı disk riski olmadan session_state kullan ---
-DEFAULT_PROFILE = {"age": 30, "risk": "Orta (Dengeli)", "goal": "Orta Vade Büyüme"}
-
-def load_profile():
-    """Profili session_state'den yükler. Disk I/O yok = gizlilik riski yok."""
-    if "user_profile" not in st.session_state:
-        st.session_state["user_profile"] = DEFAULT_PROFILE.copy()
-    return st.session_state["user_profile"]
-
-def save_profile(data):
-    """Profili sadece session_state'e kaydeder. Tarayıcı kapanınca sıfırlanır."""
-    st.session_state["user_profile"] = data
-
-
 def _to_api_message(message):
     if isinstance(message, dict):
         return message
@@ -68,17 +54,29 @@ def app():
         </div>
         """, unsafe_allow_html=True)
     
-    # 1. AI Provider Selection
-    st.sidebar.markdown("### 🤖 Ajan Ayarları")
-    provider_choice = st.sidebar.selectbox("Yapay Zeka Sağlayıcısı (Provider)", ["OpenRouter", "Groq", "DeepSeek", "Google Gemini"], index=0)
-    
+    # 1. AI Provider Selection Config (Expanded with NVIDIA NIM, OpenAI, SambaNova, Ollama)
     provider_config = {
-        "OpenRouter": {
+        "OpenRouter (Ücretsiz & Ücretli)": {
             "base_url": "https://openrouter.ai/api/v1",
             "state_key": "openrouter_api_key",
-            "models": ["openrouter/auto", "openrouter/free", "google/gemini-3.5-flash", "google/gemini-3.1-pro", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-4-scout", "Diğer (Özel Model ID Gir)"]
+            "models": ["openrouter/auto", "openrouter/free", "deepseek/deepseek-r1:free", "google/gemini-3.5-flash", "google/gemini-3.1-pro", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-4-scout", "Diğer (Özel Model ID Gir)"]
         },
-        "Groq": {
+        "OpenAI (Resmi ChatGPT / GPT-4o)": {
+            "base_url": "https://api.openai.com/v1",
+            "state_key": "openai_api_key",
+            "models": ["gpt-4o", "gpt-4o-mini", "o3-mini", "o1", "Diğer (Özel Model ID Gir)"]
+        },
+        "NVIDIA NIM (Ücretsiz Kredili)": {
+            "base_url": "https://integrate.api.nvidia.com/v1",
+            "state_key": "nvidia_api_key",
+            "models": ["deepseek-ai/deepseek-r1", "meta/llama-3.3-70b-instruct", "nvidia/llama-3.1-nemotron-70b-instruct", "qwen/qwen2.5-72b-instruct", "Diğer (Özel Model ID Gir)"]
+        },
+        "SambaNova (Ücretsiz & Ultra Hızlı)": {
+            "base_url": "https://api.sambanova.ai/v1",
+            "state_key": "sambanova_api_key",
+            "models": ["Meta-Llama-3.3-70B-Instruct", "DeepSeek-R1-Distill-Llama-70B", "Qwen2.5-Coder-32B-Instruct", "Diğer (Özel Model ID Gir)"]
+        },
+        "Groq (Ücretsiz Tier)": {
             "base_url": "https://api.groq.com/openai/v1",
             "state_key": "groq_api_key",
             "models": ["llama-4-scout", "qwen3-32b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "Diğer (Özel Model ID Gir)"]
@@ -91,23 +89,100 @@ def app():
         "Google Gemini": {
             "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
             "state_key": "gemini_api_key",
-            "models": ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-2.0-flash-001", "gemini-2.0-pro-exp-02-05", "gemini-2.0-flash-lite-preview-02-05", "Diğer (Özel Model ID Gir)"]
+            "models": ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-2.0-flash-001", "gemini-2.0-pro-exp-02-05", "Diğer (Özel Model ID Gir)"]
+        },
+        "Ollama / Yerel LLM (Ngrok / Localhost)": {
+            "base_url": "http://localhost:11434/v1",
+            "state_key": "ollama_api_key",
+            "models": ["llama3.3", "qwen2.5", "deepseek-r1", "mistral", "gemma2", "Diğer (Özel Model ID Gir)"]
         }
     }
-    
-    conf = provider_config[provider_choice]
-    state_key = conf["state_key"]
-    
-    # Keep user API keys only in the current Streamlit session.
-    if state_key not in st.session_state:
-        st.session_state[state_key] = ""
+
+    # Main Screen Top Controls & Settings Panel
+    with st.expander("⚙️ Yapay Zeka Ajan Ayarları & Model Seçimi", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            provider_choice = st.selectbox("Yapay Zeka Sağlayıcısı (Provider)", list(provider_config.keys()), index=0)
+            conf = provider_config[provider_choice]
+            state_key = conf["state_key"]
+            
+            # Custom Base URL logic for Ollama / Remote LLMs
+            target_base_url = conf["base_url"]
+            if "Ollama" in provider_choice:
+                custom_url = st.text_input(
+                    "API Base URL (Ngrok veya Localhost)", 
+                    value=st.session_state.get("custom_base_url", conf["base_url"]),
+                    help="Yerel bilgisayarınızdaki Ollama'yı public web sitesine bağlamak için Ngrok URL'inizi yazın (örn: https://xxxx.ngrok-free.app/v1)."
+                )
+                if custom_url:
+                    target_base_url = custom_url.strip()
+                    st.session_state["custom_base_url"] = target_base_url
+                    
+        with c2:
+            model_choice = st.selectbox("Yapay Zeka Modeli", conf["models"], index=0)
+            if model_choice == "Diğer (Özel Model ID Gir)":
+                model = st.text_input("Özel Model ID", help="Sağlayıcının desteklediği model ID'si.")
+                if not model:
+                    st.warning("⚠️ Lütfen bir Model ID girin.")
+                    st.stop()
+            else:
+                model = model_choice
+        with c3:
+            reasoning_choice = st.selectbox("Düşünme Seviyesi (Reasoning)", ["Yok (Standart)", "low", "medium", "high"], index=0, help="Sadece Gemini 3.5 Flash ve o1 gibi destekleyen modellerde çalışır.")
+
+        if "Ollama" in provider_choice:
+            st.info("🌐 **Yerel LLM'inizi Public Sitede Kullanma Rehberi:**\n1. Bilgisayarınızda terminal açın ve Ollama'yı başlatın: `ollama serve`\n2. Ücretsiz Ngrok ile port açın: `ngrok http 11434`\n3. Verilen `https://xxxx.ngrok-free.app` adresinin sonuna `/v1` ekleyerek yukarıdaki Base URL alanına yapıştırın.")
+
+        st.markdown("---")
+        
+        # Action Buttons row inside expander
+        bcol1, bcol2, bcol3 = st.columns(3)
+        with bcol1:
+            if st.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout", use_container_width=True):
+                st.session_state[state_key] = ""
+                st.rerun()
+        with bcol2:
+            if st.button("🧹 Sohbet Geçmişini Temizle", key="clear_chat", help="Tüm sohbet geçmişini ve ajan bağlamını sıfırlar.", use_container_width=True):
+                st.session_state.messages = []
+                st.rerun()
+        with bcol3:
+            if "messages" in st.session_state and len(st.session_state.messages) > 0:
+                chat_export_text = "# BorsaPY AI Asistan Analiz Raporu\n\n"
+                for m in st.session_state.messages:
+                    role_name = "👤 Kullanıcı" if m.get("role") == "user" else "🤖 BorsaPY Ajanı"
+                    content = m.get("content")
+                    if content and isinstance(content, str):
+                        chat_export_text += f"### {role_name}\n{content}\n\n---\n\n"
+                st.download_button(
+                    label="💾 Sohbet Raporunu İndir",
+                    data=chat_export_text,
+                    file_name="borsapy_ai_analiz.md",
+                    mime="text/markdown",
+                    key="download_chat_md",
+                    use_container_width=True
+                )
+
+    # Auto-set dummy key for Ollama / Yerel LLM
+    if "Ollama" in provider_choice and not st.session_state.get(state_key):
+        st.session_state[state_key] = "ollama"
+
+    # Keep user API keys in session, check st.secrets fallback for public deployment
+    if state_key not in st.session_state or not st.session_state[state_key]:
+        try:
+            sec_val = st.secrets.get(state_key.upper(), "") or st.secrets.get(state_key, "")
+            if sec_val:
+                st.session_state[state_key] = sec_val
+            else:
+                st.session_state[state_key] = ""
+        except Exception:
+            st.session_state[state_key] = ""
             
     # Login Screen if no key
     if not st.session_state[state_key]:
         with st.container():
             st.warning(f"Ajanı kullanabilmek için lütfen bir {provider_choice} API anahtarı girin.")
             api_key = st.text_input(f"{provider_choice} API Anahtarı", type="password", key=f"input_{state_key}")
-            st.markdown("> 🔒 **Gizlilik:** API anahtarınız model sağlayıcısına istek gönderebilmek için bu Streamlit oturumunda bellekte tutulur; diske, tarayıcı localStorage alanına veya repoya kaydedilmez. Public kullanımda yalnızca güvendiğiniz dağıtımlarda kendi anahtarınızı girin.")
+            st.markdown("> 🔒 **Public Kullanım Güvenliği:** API anahtarınız bu Streamlit oturumunda bellekte isolasyon altında tutulur; diske, sunucuya veya ortak veritabanına kaydedilmez. Oturum kapandığında silinir.")
             if st.button("Ajanı Başlat", use_container_width=True):
                 if api_key:
                     st.session_state[state_key] = api_key
@@ -116,61 +191,11 @@ def app():
                     st.error("Lütfen geçerli bir anahtar girin.")
         return
 
-    # 2. Setup AI Client
+    # 2. Setup AI Client (Supports custom Base URL for Ngrok / Remote Ollama)
     client = OpenAI(
-        base_url=conf["base_url"],
+        base_url=target_base_url,
         api_key=st.session_state[state_key],
     )
-    
-    # Model Selection
-    model_choice = st.sidebar.selectbox("Yapay Zeka Modeli Seçin", conf["models"], index=0)
-    
-    if model_choice == "Diğer (Özel Model ID Gir)":
-        model = st.sidebar.text_input("Özel Model ID", help="Sağlayıcının desteklediği herhangi bir model ID'sini yazın.")
-        if not model:
-            st.sidebar.warning("⚠️ Lütfen bir Model ID girin.")
-            st.stop()
-    else:
-        model = model_choice
-        
-    reasoning_choice = st.sidebar.selectbox("Düşünme Seviyesi (Reasoning)", ["Yok (Standart)", "low", "medium", "high"], index=0, help="Sadece Gemini 3.5 Flash ve o1 gibi destekleyen modellerde çalışır.")
-
-    # Logout button
-    if st.sidebar.button(f"🔌 {provider_choice} Bağlantısını Kes", key="logout"):
-        st.session_state[state_key] = ""
-        st.rerun()
-
-    if st.sidebar.button("🧹 Sohbet Geçmişini Temizle", key="clear_chat", help="Tüm sohbet geçmişini ve ajan bağlamını sıfırlar."):
-        st.session_state.messages = []
-        st.rerun()
-
-    st.sidebar.divider()
-
-    # 3. User Profile System
-    st.sidebar.markdown("### 👤 Yatırımcı Profilim")
-    st.sidebar.markdown("<small>Ajanlar analizlerini bu profile göre kişiselleştirir. Boş bırakılabilir.</small>", unsafe_allow_html=True)
-    
-    profile = load_profile()
-    
-    with st.sidebar.expander("Profili Düzenle", expanded=False):
-        p_age = st.number_input("Yaşınız", min_value=18, max_value=100, value=profile.get("age", 30))
-        p_risk = st.selectbox("Risk İştahınız", ["Düşük (Garantici)", "Orta (Dengeli)", "Yüksek (Agresif)"], 
-                              index=["Düşük (Garantici)", "Orta (Dengeli)", "Yüksek (Agresif)"].index(profile.get("risk", "Orta (Dengeli)")))
-        p_goal = st.selectbox("Yatırım Amacınız", ["Emeklilik Birikimi", "Orta Vade Büyüme", "Kısa Vade Vurgun / Al-Sat", "Temettü / Pasif Gelir"], 
-                              index=["Emeklilik Birikimi", "Orta Vade Büyüme", "Kısa Vade Vurgun / Al-Sat", "Temettü / Pasif Gelir"].index(profile.get("goal", "Orta Vade Büyüme")))
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Kaydet", use_container_width=True):
-                save_profile({"age": p_age, "risk": p_risk, "goal": p_goal})
-                st.toast("Profil başarıyla kaydedildi!", icon="✅")
-                st.rerun()
-        with col2:
-            if st.button("Sil", use_container_width=True):
-                if "user_profile" in st.session_state:
-                    del st.session_state["user_profile"]
-                st.toast("Profil sıfırlandı!", icon="🗑️")
-                st.rerun()
 
     # 4. Chat Interface
     if "messages" not in st.session_state:
@@ -336,13 +361,7 @@ def app():
                     }
                     curr_cfg = agent_config[st.session_state.current_agent]
                     
-                    # Inject User Profile into Prompt
                     system_prompt = curr_cfg["prompt"]
-                    profile_data = load_profile()
-                    if profile_data:
-                        profile_str = f"\n\n🚨 DİKKAT! KULLANICI PROFİLİ 🚨\n- Yaş: {profile_data.get('age')}\n- Risk İştahı: {profile_data.get('risk')}\n- Yatırım Amacı: {profile_data.get('goal')}\nLÜTFEN TÜM ANALİZLERİNİ VE GÜVEN SKORUNU BU KULLANICI PROFİLİNE (RİSK İŞTAHINA VE AMACINA) GÖRE KİŞİSELLEŞTİR!"
-                        system_prompt += profile_str
-                        
                     api_messages[0] = {"role": "system", "content": system_prompt}
                     
                     kwargs = {

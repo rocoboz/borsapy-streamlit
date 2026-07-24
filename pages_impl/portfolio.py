@@ -95,21 +95,99 @@ def app():
                 st.info("Risk metrikleri hesaplanması için daha fazla veriye ihtiyaç olabilir veya API hatası.")
 
         # Management Actions
-        with st.expander("Yönetim İşlemleri"):
-            options = portfolio.holdings['symbol'].tolist() if not portfolio.holdings.empty else []
-            rem_sym = st.selectbox("Silinecek Varlık", options)
+        with st.expander("⚙️ Portföy Yönetimi & Aktarma (Import/Export)"):
+            c_act1, c_act2 = st.columns(2)
             
-            if st.button("Seçileni Sil"):
-                if rem_sym:
-                    portfolio.remove(rem_sym)
-                    st.rerun()
+            with c_act1:
+                st.markdown("#### 🗑️ Varlık Silme")
+                options = portfolio.holdings['symbol'].tolist() if not portfolio.holdings.empty else []
+                rem_sym = st.selectbox("Silinecek Varlık", options)
                 
-            if st.button("Portföyü Tamamen Sıfırla", type="primary"):
-                portfolio.clear()
-                st.rerun()
+                if st.button("Seçileni Sil"):
+                    if rem_sym:
+                        portfolio.remove(rem_sym)
+                        st.rerun()
+                    
+                if st.button("Portföyü Tamamen Sıfırla", type="secondary"):
+                    portfolio.clear()
+                    st.rerun()
+
+            with c_act2:
+                st.markdown("#### 📥 / 📤 Veri Aktarımı")
+                if not portfolio.holdings.empty:
+                    # Export JSON
+                    json_str = portfolio.holdings.to_json(orient="records", indent=2)
+                    st.download_button(
+                        label="💾 Portföyü İndir (JSON)",
+                        data=json_str,
+                        file_name="borsapy_portfoy.json",
+                        mime="application/json",
+                        use_container_width=True
+                    )
+                    
+                    # Export CSV
+                    csv_str = portfolio.holdings.to_csv(index=False)
+                    st.download_button(
+                        label="📄 Portföyü İndir (CSV)",
+                        data=csv_str,
+                        file_name="borsapy_portfoy.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
+                
+                # Import
+                uploaded_file = st.file_uploader("Portföy Yükle (JSON / CSV)", type=["json", "csv"], key="portfolio_file_uploader")
+                if uploaded_file is not None:
+                    try:
+                        if uploaded_file.name.endswith('.json'):
+                            import_df = pd.read_json(uploaded_file)
+                        else:
+                            import_df = pd.read_csv(uploaded_file)
+                            
+                        if st.button("Yüklenen Verileri Aktar", type="primary", use_container_width=True):
+                            for _, row in import_df.iterrows():
+                                sym = str(row.get('symbol', '')).upper()
+                                sh = float(row.get('shares', 1.0))
+                                ast = str(row.get('asset_type', 'stock')).lower()
+                                cst = float(row.get('cost', 0.0))
+                                if sym and sh > 0:
+                                    kwargs = {"shares": sh, "asset_type": ast}
+                                    if cst > 0:
+                                        kwargs["cost"] = cst
+                                    portfolio.add(sym, **kwargs)
+                            st.success("Portföy başarıyla içe aktarıldı!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Dosya okuma hatası: {e}")
 
     else:
-        st.info("Portföyünüz boş. Yukarıdaki panelden varlık ekleyerek başlayın.")
+        st.info("Portföyünüz boş. Yukarıdaki panelden varlık ekleyebilir veya yedek dosyanızı yükleyebilirsiniz.")
+        
+        with st.expander("📥 Kayıtlı Portföy Yükle (JSON / CSV)"):
+            uploaded_file = st.file_uploader("Portföy Dosyası Seçin", type=["json", "csv"], key="empty_portfolio_file_uploader")
+            if uploaded_file is not None:
+                try:
+                    if uploaded_file.name.endswith('.json'):
+                        import_df = pd.read_json(uploaded_file)
+                    else:
+                        import_df = pd.read_csv(uploaded_file)
+                        
+                    if st.button("Yükle ve Başlat", type="primary", use_container_width=True):
+                        for _, row in import_df.iterrows():
+                            sym = str(row.get('symbol', '')).upper()
+                            sh = float(row.get('shares', 1.0))
+                            ast = str(row.get('asset_type', 'stock')).lower()
+                            cst = float(row.get('cost', 0.0))
+                            if sym and sh > 0:
+                                kwargs = {"shares": sh, "asset_type": ast}
+                                if cst > 0:
+                                    kwargs["cost"] = cst
+                                portfolio.add(sym, **kwargs)
+                        st.success("Portföy yüklendi!")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Yükleme hatası: {e}")
+
         st.markdown("""
         **Desteklenen Varlıklar:**
         * **Hisse:** THYAO, GARAN, ASELS...
@@ -117,3 +195,4 @@ def app():
         * **Kripto:** BTCTRY, ETHTRY...
         * **Döviz/Emtia:** USD, EUR, gram-altin, BRENT...
         """)
+
