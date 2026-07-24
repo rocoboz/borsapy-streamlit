@@ -12,7 +12,9 @@ st.set_page_config(
 )
 
 # Load Styles
-load_css("assets/style.css")
+css_content = load_css("assets/style.css")
+if css_content:
+    st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
 
 # Sidebar Navigation
 with st.sidebar:

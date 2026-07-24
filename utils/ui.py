@@ -3,17 +3,22 @@ from html import escape
 import json
 import requests
 
+@st.cache_data(ttl=86400, show_spinner=False)
 def load_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    try:
+        with open(file_name) as f:
+            return f.read()
+    except Exception:
+        return ""
 
+@st.cache_data(ttl=86400, show_spinner=False)
 def load_lottieurl(url: str):
     try:
-        r = requests.get(url, timeout=6)
+        r = requests.get(url, timeout=4)
         r.raise_for_status()
-    except requests.RequestException:
+        return r.json()
+    except Exception:
         return None
-    return r.json()
 
 def render_header(title, subtitle=None):
     safe_title = escape(str(title))
