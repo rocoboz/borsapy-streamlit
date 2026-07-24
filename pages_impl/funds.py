@@ -146,13 +146,14 @@ def app():
         st.subheader("🏆 TEFAS Akıllı Algoritmik Fon Sıralaması (Ranking)")
         st.caption("Gelişmiş finansal rasyolar ve kümülatif getiri değerlerini harmanlayan akıllı puanlama motoru.")
         
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         period = c1.selectbox("Sıralama Dönemi", ["1 Ay", "3 Ay", "6 Ay", "Yılbaşı", "1 Yıl", "3 Yıl", "5 Yıl"], index=4)
         ftype = c2.selectbox("Fon Tipi", ["Tümü", "YAT (Yatırım Fonları)", "EMK (Emeklilik Fonları)"], index=0)
-        algo_focus = c3.selectbox("Sıralama Algoritması Odağı", ["🏆 Akıllı Puan (5 Faktörlü Risk/Getiri/İstikrar)", "📈 Sadece Getiri (%)", "🛡️ Muhafazakar & Düşük Kayıp Odağı"])
+        tefas_filter = c3.selectbox("TEFAS İşlem Durumu", ["Tümü", "🟢 TEFAS'a Açık", "🔴 TEFAS'a Kapalı / Özel"], index=0)
+        algo_focus = c4.selectbox("Algoritma Odağı", ["🏆 Akıllı Puan (5 Faktörlü)", "📈 Sadece Getiri (%)", "🛡️ Muhafazakar Odağı"])
         
         if st.button("Algoritmik Sıralamayı Başlat", use_container_width=True, type="primary"):
-            with st.spinner("2000+ Fon taranıyor ve 5 faktörlü akıllı modelle puanlanıyor..."):
+            with st.spinner("2000+ Fon taranıyor ve filtreleniyor..."):
                 try:
                     ft_codes = ["YAT"] if "YAT" in ftype else ["EMK"] if "EMK" in ftype else ["YAT", "EMK"]
                     
@@ -181,6 +182,20 @@ def app():
                     else:
                         # Drop nulls for target
                         df = df.dropna(subset=[target_col])
+                        
+                        # TEFAS Açık / Kapalı Filtreleme
+                        if tefas_filter != "Tümü":
+                            tefas_col = None
+                            for cand in ['is_tefas_open', 'tefas_status', 'is_open_to_tefas', 'tefas_open', 'is_tefas', 'is_open', 'tefasDurum']:
+                                if cand in df.columns:
+                                    tefas_col = cand
+                                    break
+                            
+                            if tefas_col:
+                                if "Açık" in tefas_filter:
+                                    df = df[df[tefas_col].isin([True, 1, "EVET", "AÇIK", "Açık", "Evet", "tefas_open", "Açık"])]
+                                elif "Kapalı" in tefas_filter:
+                                    df = df[df[tefas_col].isin([False, 0, "HAYIR", "KAPALI", "Kapalı", "Hayır", "tefas_closed", "Kapalı"])]
                         
                         if algo_focus == "Sadece Getiri (%)":
                             df['Smart Score'] = df[target_col]
