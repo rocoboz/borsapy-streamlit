@@ -149,10 +149,10 @@ def app():
         c1, c2, c3 = st.columns(3)
         period = c1.selectbox("Sıralama Dönemi", ["1 Ay", "3 Ay", "6 Ay", "Yılbaşı", "1 Yıl", "3 Yıl", "5 Yıl"], index=4)
         ftype = c2.selectbox("Fon Tipi", ["Tümü", "YAT (Yatırım Fonları)", "EMK (Emeklilik Fonları)"], index=0)
-        algo_focus = c3.selectbox("Sıralama Algoritması Odağı", ["Akıllı Puan (Getiri/İstikrar)", "Sadece Getiri (%)"])
+        algo_focus = c3.selectbox("Sıralama Algoritması Odağı", ["🏆 Akıllı Puan (5 Faktörlü Risk/Getiri/İstikrar)", "📈 Sadece Getiri (%)", "🛡️ Muhafazakar & Düşük Kayıp Odağı"])
         
         if st.button("Algoritmik Sıralamayı Başlat", use_container_width=True, type="primary"):
-            with st.spinner("2000+ Fon taranıyor ve puanlanıyor..."):
+            with st.spinner("2000+ Fon taranıyor ve 5 faktörlü akıllı modelle puanlanıyor..."):
                 try:
                     ft_codes = ["YAT"] if "YAT" in ftype else ["EMK"] if "EMK" in ftype else ["YAT", "EMK"]
                     
@@ -186,22 +186,78 @@ def app():
                             df['Smart Score'] = df[target_col]
                             df = df.sort_values(by=target_col, ascending=False)
                         else:
-                            # Akıllı Puan (Proxy for Sharpe/Stability)
-                            # %50 Return Percentile + %50 Stability (Positive returns across periods)
-                            df['ret_pct'] = df[target_col].rank(pct=True) * 100
-                            
-                            # Stability proxy: How many periods are positive out of all available
+                            # 1. Kategori İçi Göreli Getiri Yüzdesi (%35)
+                            if 'category' in df.columns:
+                                df['cat_ret_pct'] = df.groupby('category')[target_col].transform(lambda x: x.rank(pct=True) * 100)
+                            else:
+                                df['cat_ret_pct'] = df[target_col].rank(pct=True) * 100
+
+                            # 2. Risk-Adjusted Return (Sharpe & Volatility Proxy - %25)
                             periods = ['return_1m', 'return_3m', 'return_6m', 'return_1y']
                             avail_periods = [p for p in periods if p in df.columns]
-                            
-                            stability_scores = []
+
+                            sharpe_proxies = []
                             for idx, row in df.iterrows():
-                                pos_count = sum(1 for p in avail_periods if pd.notnull(row[p]) and row[p] > 0)
-                                stab_pct = (pos_count / len(avail_periods)) * 100 if avail_periods else 50
-                                stability_scores.append(stab_pct)
-                                
-                            df['stab_pct'] = stability_scores
-                            df['Smart Score'] = (df['ret_pct'] * 0.60) + (df['stab_pct'] * 0.40)
+                                vals = [row[p] for p in avail_periods if pd.notnull(row[p])]
+                                if len(vals) >= 2:
+                                    mean_v = pd.Series(vals).mean()
+                                    std_v = pd.Series(vals).std()
+                                    sharpe = (mean_v / (std_v + 0.5)) if std_v > 0 else (mean_v / 0.5)
+                                else:
+                                    sharpe = (row[target_col] / 10.0) if pd.notnull(row[target_col]) else 0
+                                sharpe_proxies.append(sharpe)
+
+                            df['sharpe_proxy'] = sharpe_proxies
+                            df['sharpe_pct'] = df['sharpe_proxy'].rank(pct=True) * 100
+
+                            # 3. Kayıp Koruması & Düşüş Risk Puanı (%20)
+                            drawdown_scores = []
+                            for idx, row in df.iterrows():
+                                vals = [row[p] for p in avail_periods if pd.notnull(row[p])]
+                                neg_vals = [v for v in vals if v < 0]
+                                worst_drop = min(neg_vals) if neg_vals else 0
+                                drawdown_scores.append(worst_drop)
+
+                            df['drawdown_proxy'] = drawdown_scores
+                            df['drawdown_pct'] = df['drawdown_proxy'].rank(pct=True, ascending=True) * 100
+
+                            # 4. Çoklu Dönem Tutarlılığı (%15)
+                            consistency_scores = []
+                            for idx, row in df.iterrows():
+                                vals = [row[p] for p in avail_periods if pd.notnull(row[p])]
+                                if vals:
+                                    pos_ratio = sum(1 for v in vals if v > 0) / len(vals)
+                                    consistency_scores.append(pos_ratio * 100)
+                                else:
+                                    consistency_scores.append(50)
+
+                            df['consistency_pct'] = consistency_scores
+
+                            # 5. Ücret Verimliliği (%5)
+                            if 'applied_fee' in df.columns:
+                                df['fee_pct'] = df['applied_fee'].rank(pct=True, ascending=False) * 100
+                            else:
+                                df['fee_pct'] = 50.0
+
+                            # Modeller
+                            if "Muhafazakar" in algo_focus:
+                                # Prioritize Drawdown Protection and Sharpe
+                                df['Smart Score'] = (
+                                    (df['cat_ret_pct'] * 0.20) +
+                                    (df['sharpe_pct'] * 0.35) +
+                                    (df['drawdown_pct'] * 0.30) +
+                                    (df['consistency_pct'] * 0.10) +
+                                    (df['fee_pct'] * 0.05)
+                                )
+                            else:
+                                # Standard 5-Factor Smart Score
+                                df['Smart Score'] = (
+                                    (df['cat_ret_pct'] * 0.35) +
+                                    (df['sharpe_pct'] * 0.25) +
+                                    (df['drawdown_pct'] * 0.20) +
+                                    (df['consistency_pct'] * 0.15) +
+                                    (df['fee_pct'] * 0.05)
+                                )
                             
                             df = df.sort_values(by='Smart Score', ascending=False)
                             
