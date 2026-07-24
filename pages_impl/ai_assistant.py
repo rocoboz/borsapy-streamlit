@@ -201,8 +201,8 @@ def app():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
-    # Mesaj geçmişini son 50 girdi ile sınırla (token overflow önleme)
-    MAX_HISTORY = 50
+    # Mesaj geçmişini son 100 girdi ile sınırla (token context genişletildi)
+    MAX_HISTORY = 100
     if len(st.session_state.messages) > MAX_HISTORY:
         st.session_state.messages = st.session_state.messages[-MAX_HISTORY:]
         
@@ -345,7 +345,7 @@ def app():
                         api_messages.append(m)
             # ------------------------------------
 
-            max_tool_calls = 10
+            max_tool_calls = 15
             tool_call_count = 0
             
             while tool_call_count < max_tool_calls:
@@ -369,7 +369,7 @@ def app():
                         "messages": api_messages,
                         "tools": curr_cfg["schema"],
                         "tool_choice": "auto",
-                        "max_tokens": 8192
+                        "max_tokens": 16384
                     }
                     if reasoning_choice != "Yok (Standart)":
                         kwargs["reasoning_effort"] = reasoning_choice
